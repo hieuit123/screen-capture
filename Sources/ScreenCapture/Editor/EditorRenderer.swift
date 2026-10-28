@@ -1,0 +1,252 @@
+import AppKit
+
+/// Draws annotations with CoreGraphics. Used both for the live canvas and the exported image,
+/// so the saved file matches the preview exactly. All contexts are expected to be y-down.
+@MainActor
+enum EditorRenderer {
+    // MARK: Export
+
+    static func render(image: CGImage, pixelated: CGImage?, annotations: [Annotation], beautify: BeautifySettings) -> CGImage? {
+        let imageSize = CGSize(width: image.width, height: image.height)
+        let layout = CanvasLayout(imageSize: imageSize, beautify: beautify)
+        let width = Int(layout.canvasSize.width), height = Int(layout.canvasSize.height)
+        guard let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        else { return nil }
+
+        // Flip to a top-left origin to match the editor's coordinate space.
+        ctx.translateBy(x: 0, y: CGFloat(height))
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.interpolationQuality = .high
+
+        let imagePath = CGPath(roundedRect: layout.imageRect, cornerWidth: layout.cornerRadius,
+                               cornerHeight: layout.cornerRadius, transform: nil)
+        if beautify.enabled {
+            drawGradient(beautify.preset.colors, in: CGRect(origin: .zero, size: layout.canvasSize), context: ctx)
+            if layout.shadowRadius > 0 {
+                ctx.saveGState()
+                // Shadow offsets are in device space (y-up), so a negative height points down.
+                ctx.setShadow(offset: CGSize(width: 0, height: -layout.shadowRadius * 0.4), blur: layout.shadowRadius,
+                              color: NSColor.black.withAlphaComponent(0.4).cgColor)
+                ctx.addPath(imagePath)
+                ctx.setFillColor(NSColor.black.cgColor)
+                ctx.fillPath()
+                ctx.restoreGState()
+            }
+        }
+
+        ctx.saveGState()
+        ctx.addPath(imagePath)
+        ctx.clip()
+        drawImage(image, in: layout.imageRect, context: ctx)
+        ctx.translateBy(x: layout.imageRect.minX, y: layout.imageRect.minY)
+        draw(annotations, pixelated: pixelated, imageSize: imageSize, in: ctx)
+        ctx.restoreGState()
+
+        return ctx.makeImage()
+    }
+
+    // MARK: Primitives
+
+    static func drawImage(_ image: CGImage, in rect: CGRect, context ctx: CGContext) {
+        ctx.saveGState()
+        ctx.translateBy(x: rect.minX, y: rect.maxY)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(image, in: CGRect(origin: .zero, size: rect.size))
+        ctx.restoreGState()
+    }
+
+    static func drawGradient(_ colors: [NSColor], in rect: CGRect, context ctx: CGContext) {
+        guard let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB),
+                                        colors: colors.map(\.cgColor) as CFArray, locations: nil) else { return }
+        ctx.saveGState()
+        ctx.clip(to: rect)
+        ctx.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: rect.minY),
+                               end: CGPoint(x: rect.maxX, y: rect.maxY), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+        ctx.restoreGState()
+    }
+
+    static func draw(_ annotations: [Annotation], pixelated: CGImage?, imageSize: CGSize, in ctx: CGContext) {
+        for annotation in annotations {
+            ctx.saveGState()
+            draw(annotation, pixelated: pixelated, imageSize: imageSize, in: ctx)
+            ctx.restoreGState()
+        }
+    }
+
+    private static func draw(_ a: Annotation, pixelated: CGImage?, imageSize: CGSize, in ctx: CGContext) {
+        let color = a.color.cgColor
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.setLineWidth(a.lineWidth)
+        ctx.setStrokeColor(color)
+        ctx.setFillColor(color)
+
+        switch a.shape {
+        case .rectangle(let r):
+            let radius = min(a.lineWidth * 1.5, min(r.width, r.height) / 2)
+            ctx.addPath(CGPath(roundedRect: r, cornerWidth: radius, cornerHeight: radius, transform: nil))
+            if a.filled {
+                ctx.setFillColor(a.color.withAlphaComponent(0.35).cgColor)
+                ctx.drawPath(using: .fillStroke)
+            } else {
+                ctx.strokePath()
+            }
+
+        case .ellipse(let r):
+            ctx.addEllipse(in: r)
+            if a.filled {
+                ctx.setFillColor(a.color.withAlphaComponent(0.35).cgColor)
+                ctx.drawPath(using: .fillStroke)
+            } else {
+                ctx.strokePath()
+            }
+
+        case .line(let p1, let p2):
+            ctx.move(to: p1)
+            ctx.addLine(to: p2)
+            ctx.strokePath()
+
+        case .arrow(let p1, let p2):
+            drawArrow(from: p1, to: p2, width: a.lineWidth, in: ctx)
+
+        case .pencil(let points):
+            ctx.addPath(smoothPath(points))
+            ctx.strokePath()
+
+        case .highlighter(let points):
+            ctx.setStrokeColor(a.color.withAlphaComponent(0.4).cgColor)
+            ctx.setLineCap(.square)
+            ctx.addPath(smoothPath(points))
+            ctx.strokePath()
+
+        case .text(let origin, let string):
+            drawText(string, at: origin, color: a.color, fontSize: a.fontSize, filled: a.filled, in: ctx)
+
+        case .pixelate(let r):
+            ctx.clip(to: r)
+            if let pixelated {
+                ctx.interpolationQuality = .none
+                drawImage(pixelated, in: CGRect(origin: .zero, size: imageSize), context: ctx)
+            } else {
+                ctx.setFillColor(NSColor.gray.cgColor)
+                ctx.fill(r)
+            }
+
+        case .counter(let center, let number):
+            let radius = counterRadius(fontSize: a.fontSize)
+            let circle = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+            ctx.saveGState()
+            ctx.setShadow(offset: CGSize(width: 0, height: -radius * 0.1), blur: radius * 0.3,
+                          color: NSColor.black.withAlphaComponent(0.3).cgColor)
+            ctx.fillEllipse(in: circle)
+            ctx.restoreGState()
+            ctx.setStrokeColor(NSColor.white.cgColor)
+            ctx.setLineWidth(max(1.5, radius * 0.12))
+            ctx.strokeEllipse(in: circle.insetBy(dx: radius * 0.06, dy: radius * 0.06))
+            let label = NSAttributedString(string: "\(number)", attributes: [
+                .font: NSFont.systemFont(ofSize: a.fontSize * 0.95, weight: .bold),
+                .foregroundColor: contrastingTextColor(for: a.color),
+            ])
+            let size = label.size()
+            withAppKit(ctx) { label.draw(at: CGPoint(x: center.x - size.width / 2, y: center.y - size.height / 2)) }
+        }
+    }
+
+    // MARK: Text
+
+    nonisolated static func textAttributes(fontSize: CGFloat, color: NSColor) -> [NSAttributedString.Key: Any] {
+        [.font: NSFont.systemFont(ofSize: fontSize, weight: .bold), .foregroundColor: color]
+    }
+
+    nonisolated static func textPadding(fontSize: CGFloat) -> CGSize {
+        CGSize(width: fontSize * 0.4, height: fontSize * 0.2)
+    }
+
+    nonisolated static func textBoxSize(_ string: String, fontSize: CGFloat, filled: Bool) -> CGSize {
+        let measured = NSAttributedString(string: string.isEmpty ? " " : string,
+                                          attributes: textAttributes(fontSize: fontSize, color: .black))
+            .boundingRect(with: CGSize(width: 100_000, height: 100_000), options: [.usesLineFragmentOrigin]).size
+        let pad = textPadding(fontSize: fontSize)
+        return CGSize(width: ceil(measured.width) + pad.width * 2, height: ceil(measured.height) + pad.height * 2)
+    }
+
+    private static func drawText(_ string: String, at origin: CGPoint, color: NSColor, fontSize: CGFloat, filled: Bool,
+                                 in ctx: CGContext) {
+        let size = textBoxSize(string, fontSize: fontSize, filled: filled)
+        let box = CGRect(origin: origin, size: size)
+        let pad = textPadding(fontSize: fontSize)
+        let textColor = filled ? contrastingTextColor(for: color) : color
+
+        if filled {
+            ctx.addPath(CGPath(roundedRect: box, cornerWidth: fontSize * 0.3, cornerHeight: fontSize * 0.3, transform: nil))
+            ctx.setFillColor(color.cgColor)
+            ctx.fillPath()
+        } else {
+            // Soft halo keeps text readable on busy backgrounds.
+            ctx.setShadow(offset: .zero, blur: fontSize * 0.25,
+                          color: contrastingTextColor(for: color).withAlphaComponent(0.6).cgColor)
+        }
+        let attributed = NSAttributedString(string: string, attributes: textAttributes(fontSize: fontSize, color: textColor))
+        withAppKit(ctx) {
+            attributed.draw(with: CGRect(x: box.minX + pad.width, y: box.minY + pad.height,
+                                         width: box.width - pad.width * 2 + 1, height: box.height - pad.height * 2 + 1),
+                            options: [.usesLineFragmentOrigin])
+        }
+    }
+
+    nonisolated static func counterRadius(fontSize: CGFloat) -> CGFloat { fontSize * 0.85 }
+
+    private static func contrastingTextColor(for color: NSColor) -> NSColor {
+        guard let rgb = color.usingColorSpace(.sRGB) else { return .white }
+        let luminance = 0.299 * rgb.redComponent + 0.587 * rgb.greenComponent + 0.114 * rgb.blueComponent
+        return luminance > 0.65 ? .black : .white
+    }
+
+    private static func withAppKit(_ ctx: CGContext, _ body: () -> Void) {
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: true)
+        body()
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    // MARK: Paths
+
+    private static func drawArrow(from start: CGPoint, to end: CGPoint, width: CGFloat, in ctx: CGContext) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 0.5 else { return }
+        let angle = atan2(dy, dx)
+        let headLength = min(max(width * 4.5, 12), length * 0.6)
+        let headAngle = CGFloat.pi / 7
+
+        let shaftEnd = CGPoint(x: end.x - cos(angle) * headLength * 0.7, y: end.y - sin(angle) * headLength * 0.7)
+        ctx.move(to: start)
+        ctx.addLine(to: shaftEnd)
+        ctx.strokePath()
+
+        ctx.move(to: end)
+        ctx.addLine(to: CGPoint(x: end.x - cos(angle - headAngle) * headLength, y: end.y - sin(angle - headAngle) * headLength))
+        ctx.addLine(to: CGPoint(x: end.x - cos(angle + headAngle) * headLength, y: end.y - sin(angle + headAngle) * headLength))
+        ctx.closePath()
+        ctx.setLineWidth(width * 0.5)
+        ctx.drawPath(using: .fillStroke)
+    }
+
+    private static func smoothPath(_ points: [CGPoint]) -> CGPath {
+        let path = CGMutablePath()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        guard points.count > 2 else {
+            path.addLine(to: points.last!)
+            return path
+        }
+        for i in 1..<points.count - 1 {
+            let mid = CGPoint(x: (points[i].x + points[i + 1].x) / 2, y: (points[i].y + points[i + 1].y) / 2)
+            path.addQuadCurve(to: mid, control: points[i])
+        }
+        path.addLine(to: points.last!)
+        return path
+    }
+}
