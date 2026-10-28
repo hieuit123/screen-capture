@@ -1,23 +1,275 @@
 # ScreenCapture
 
-A menu bar screen recorder and screenshot tool for **macOS 26 (Tahoe) and later**. It's built with ScreenCaptureKit, hardware-encoded AVFoundation, and SwiftUI with Liquid Glass. The UI is modeled on Tap Record.
+A simple menu bar app for taking **screenshots** and **screen recordings** on your Mac. You can mark up your screenshots with arrows, text, and blur, then save or copy them.
 
-## Features
+Requires **macOS 26 (Tahoe) or later**.
 
-- **Record or screenshot** from a compact menu bar panel.
-- **Sources:** a whole screen, a single window, a single app (only that app's windows and audio), or a dragged **area**.
-- **Area selection:** a red selection frame with crosshair guides and a live pixel-size label. For screenshots, capture happens on release (like ⌘⇧4). For recordings you can move or resize the frame, then press **Start Recording** or Return. A single click selects the whole screen, and Esc cancels.
-- **Frame rate:** 15 / 24 / 30 / 60 / 120 fps.
-- **Quality:** Low (50% resolution), Medium (75%), High (native), Best (native, maximum bitrate). The panel shows the resulting resolution and bitrate. Other options: HEVC or H.264, MP4 or MOV.
-- **Audio:** system audio and/or microphone, each on its own track, with a microphone picker. The cursor can be shown or hidden.
-- **Screenshots:** PNG, JPEG, or HEIC, with optional copy to the clipboard.
-- **Quick Screenshot:** one shortcut (default `⌃⌥⌘D`, changeable in Settings › General or Shortcuts) instantly captures the screen under the mouse. It copies the image to the clipboard, saves it to `ScreenCapture/images`, plays a shutter sound (optional), and shows a small toast; click the toast to open the editor.
-- **Screenshot editor (Xnapper-style):** opens automatically after each screenshot (configurable). Tools: select/move (V), crop (C), rectangle (R), ellipse (O), line (L), arrow (A), pencil (P), highlighter (H), text (T), pixelate/redact (B), and numbered steps (N). You can set colour, stroke, fill, and text size; hold Shift for squares and 45° lines; and use undo/redo and arrow-key nudging. **Beautify** places the shot on a gradient background with padding, rounded corners, a shadow, and an aspect ratio (Auto, 16:9, 4:3, 1:1). Copy (⌘C), Save (⌘S), and Save As are available. The preview and the exported file are drawn by the same renderer, so they match exactly.
-- **Auto-created folders:** `~/Documents/ScreenCapture/videos` and `~/Documents/ScreenCapture/images`.
-- **After each capture:** a floating card shows a preview with *Open / Finder / Copy*, plus **View Recording History** or **View Screenshot History**, matching the capture you just made.
-- **History window:** double-click a screenshot to edit it. It's a grid grouped by date, with search, a preview inspector (video player or image plus metadata), drag-and-drop, share, and move to Trash. It updates live when files change.
-- **Global shortcuts:** customise them in **Settings › Shortcuts** (gear button, or ⌘,). Defaults: `⌃⌥⌘S` takes a screenshot, `⌃⌥⌘D` takes a quick screenshot, `⌃⌥⌘A` captures an area, and `⌃⌥⌘R` starts or stops recording. While recording, the menu bar shows a red stop icon and a timer; click it to stop.
-- **Right-click the menu bar icon** for quick actions and both history views.
+---
+
+## Contents
+
+1. [Install](#1-install)
+2. [First launch: allow permissions](#2-first-launch-allow-permissions)
+3. [Take a screenshot](#3-take-a-screenshot)
+4. [Record your screen](#4-record-your-screen)
+5. [Edit a screenshot](#5-edit-a-screenshot)
+6. [Set up keyboard shortcuts](#6-set-up-keyboard-shortcuts)
+7. [Find your files (History)](#7-find-your-files-history)
+8. [Settings](#8-settings)
+9. [Troubleshooting](#9-troubleshooting)
+
+---
+
+## 1. Install
+
+1. Open `ScreenCapture-<version>.dmg`.
+2. Drag **ScreenCapture** into the **Applications** folder.
+3. Open **ScreenCapture** from Applications.
+
+The app runs in the **menu bar** at the top of the screen, not in the Dock. Look for its icon near the clock.
+
+- **Left-click** the icon to open the capture panel.
+- **Right-click** the icon for a quick menu with all actions, history, settings, and **Quit**.
+
+> **Tip:** To start the app automatically, turn on **Settings › General › Launch at login**.
+
+---
+
+## 2. First launch: allow permissions
+
+macOS will ask for a few permissions the first time you capture:
+
+| Permission                          | Needed for                  | Required?                          |
+| ----------------------------------- | --------------------------- | ---------------------------------- |
+| **Screen & System Audio Recording** | Any screenshot or recording | Yes                                |
+| **Documents folder**                | Saving your files           | Yes                                |
+| **Microphone**                      | Recording your voice        | Only if you turn on the microphone |
+
+If you see an **orange banner** in the panel:
+
+1. Click **Grant Access**.
+2. In System Settings, turn on **ScreenCapture**.
+3. Quit and reopen ScreenCapture if capturing still doesn't work.
+
+---
+
+## 3. Take a screenshot
+
+### Option A: from the panel
+
+1. Click the menu bar icon.
+2. Choose **Screenshot** mode.
+3. Pick a source:
+   - **Screen**: the whole display
+   - **Window**: one window
+   - **App**: all windows of one app
+   - **Area**: a part of the screen you drag out
+4. Click the capture button.
+
+### Option B: with a shortcut (fastest)
+
+| Shortcut | What it does                                                     |
+| -------- | ---------------------------------------------------------------- |
+| `⌃⌥⌘S`   | Take a screenshot                                                |
+| `⌃⌥⌘A`   | Capture an area you select                                       |
+| `⌃⌥⌘D`   | **Quick Screenshot**: grabs the screen under the mouse instantly |
+
+`⌃` = Control, `⌥` = Option, `⌘` = Command. You can change these shortcuts; see [section 6](#6-set-up-keyboard-shortcuts).
+
+### Selecting an area
+
+- **Drag** to draw a box. The capture happens when you release the mouse.
+- **Click once** (without dragging) to capture the whole screen.
+- Press **Esc** to cancel.
+
+### Quick Screenshot
+
+`⌃⌥⌘D` captures the screen the mouse is on, **copies it to the clipboard**, and saves it. Paste it anywhere with `⌘V`. A small notice appears; **click it to open the editor**.
+
+### After a screenshot
+
+By default the **editor** opens so you can mark up the image (see [section 5](#5-edit-a-screenshot)). A preview card also appears with these buttons:
+
+- **Edit**: open the editor
+- **Open**: open the file
+- **Finder**: show the file in Finder
+- **Copy**: copy it to the clipboard
+- **View Screenshot History**: see all your screenshots
+
+You can drag the thumbnail straight into another app, such as an email or chat.
+
+---
+
+## 4. Record your screen
+
+1. Click the menu bar icon and choose **Recording** mode.
+2. Pick a source: **Screen**, **Window**, **App**, or **Area**.
+3. (Optional) Adjust the options:
+   - **Frame rate**: 30 fps is good for most uses. Choose 60 fps for smooth motion.
+   - **Quality**: Low, Medium, High, or Best. Higher quality makes bigger files.
+   - **System audio**: records sound from your Mac.
+   - **Microphone**: records your voice. Choose which mic to use.
+   - **Show cursor**: shows or hides the mouse pointer.
+4. Click **Start Recording**, or press `⌃⌥⌘R`.
+
+**For an Area recording:** drag a box, then move it or resize it using the handles. Click **Start Recording** or press **Return** when ready. Press **Esc** to cancel.
+
+**To stop recording**, do either of these:
+
+- Click the **red stop icon** with the timer in the menu bar.
+- Press `⌃⌥⌘R` again.
+
+---
+
+## 5. Edit a screenshot
+
+The editor opens automatically after a screenshot. You can also open it by:
+
+- clicking **Edit** on the preview card, or
+- double-clicking a screenshot in **Screenshot History**.
+
+### Tools
+
+Click a tool in the toolbar, or press its letter key:
+
+| Key | Tool            | Use it to…                                             |
+| --- | --------------- | ------------------------------------------------------ |
+| `V` | **Select**      | Click a shape to select, move, or delete it            |
+| `C` | **Crop**        | Drag to choose the area to keep, then press **Return** |
+| `R` | **Rectangle**   | Draw a box around something                            |
+| `O` | **Ellipse**     | Draw a circle or oval                                  |
+| `L` | **Line**        | Draw a straight line                                   |
+| `A` | **Arrow**       | Point at something                                     |
+| `P` | **Pencil**      | Draw freehand                                          |
+| `H` | **Highlighter** | Highlight text, like a marker pen                      |
+| `T` | **Text**        | Click and type a label                                 |
+| `B` | **Pixelate**    | Hide private info (passwords, emails, faces)           |
+| `N` | **Step number** | Add numbered markers 1, 2, 3… for step-by-step guides  |
+
+### Style
+
+Use the style bar to change:
+
+- **Color**: 9 preset colors, or pick your own
+- **Stroke**: Thin, Medium, or Thick
+- **Text size**: S, M, or L
+- **Fill**: fill rectangles, ovals, and text backgrounds with color
+
+### Handy tips
+
+- Hold **Shift** while drawing to make perfect squares and circles, or to snap lines to 45°.
+- Use the **arrow keys** to nudge a selected shape by 1 pixel. Hold **Shift** to move 10 pixels.
+- Press **Delete** to remove the selected shape.
+- Press **Esc** to deselect.
+- `⌘Z` undoes and `⇧⌘Z` redoes.
+
+### Beautify (make it look nice)
+
+Turn on **Beautify** in the right sidebar to place your screenshot on a colored background. This is good for sharing on social media or in documents. You can adjust:
+
+- **Background**: choose a gradient (Grape, Sunset, Ocean, Mint, and more)
+- **Padding**: the space around the image
+- **Corner radius**: how rounded the corners are
+- **Shadow**
+- **Aspect ratio**: Auto, 16:9, 4:3, or 1:1
+
+### Save or share
+
+| Action             | Shortcut | What it does                                             |
+| ------------------ | -------- | -------------------------------------------------------- |
+| **Copy**           | `⇧⌘C`    | Copies the edited image so you can paste it anywhere     |
+| **Save**           | `⌘S`     | Replaces the original file with your edits               |
+| **Save As**        |          | Saves a new file and lets you choose the name and format |
+| **Show in Finder** |          | Opens the folder containing the file                     |
+
+---
+
+## 6. Set up keyboard shortcuts
+
+Shortcuts work everywhere, even when ScreenCapture isn't in front.
+
+### Default shortcuts
+
+| Action                 | Default |
+| ---------------------- | ------- |
+| Take Screenshot        | `⌃⌥⌘S`  |
+| Quick Screenshot       | `⌃⌥⌘D`  |
+| Capture Area           | `⌃⌥⌘A`  |
+| Start / Stop Recording | `⌃⌥⌘R`  |
+
+### Change a shortcut
+
+1. Open **Settings**. Click the gear button in the panel, right-click the menu bar icon and choose **Settings…**, or press `⌘,` while the panel is open.
+2. Go to the **Shortcuts** tab.
+3. Click the shortcut button next to the action. It changes to **Press keys…**.
+4. Press your new key combination, for example `⌃⌥⌘1`.
+   - It must include at least one of **⌘ Command**, **⌃ Control**, or **⌥ Option**. Function keys such as `F5` work on their own.
+5. That's it. The new shortcut works immediately.
+
+### Other options
+
+- **Cancel** while recording a shortcut: press **Esc**.
+- **Remove a shortcut:** click the **ⓧ** next to it, or press **Delete** while the button shows _Press keys…_.
+- **Reset everything:** click **Restore Defaults**.
+- If you choose a shortcut that another action already uses, it moves to the new action automatically.
+
+> **Orange warning?** macOS or another app is already using that combination. Pick a different one. Avoid `⇧⌘3`, `⇧⌘4`, and `⇧⌘5`, which macOS uses for its own screenshots.
+
+---
+
+## 7. Find your files (History)
+
+All files are saved automatically to:
+
+- Screenshots: `~/Documents/ScreenCapture/images`
+- Recordings: `~/Documents/ScreenCapture/videos`
+
+To browse them, right-click the menu bar icon and choose **Screenshot History…** or **Recording History…**.
+
+In the History window you can:
+
+- Switch between **Recordings** and **Screenshots** at the top.
+- **Search** by file name.
+- **Double-click** a screenshot to edit it, or a video to play it.
+- **Right-click** an item to Edit, Open, Show in Finder, Copy, Share, or Move to Trash.
+- **Drag** an item into another app.
+
+---
+
+## 8. Settings
+
+**General tab**
+
+| Setting                                          | What it does                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| Open the editor after taking a screenshot        | Opens the editor automatically after each capture                |
+| Show a preview card after capturing              | Shows the small card with Open / Finder / Copy                   |
+| Copy screenshots to the clipboard                | Copies every screenshot automatically so you can paste with `⌘V` |
+| Quick Screenshot › Shortcut / Play shutter sound | Sets up the instant-capture shortcut and its sound               |
+| Image format                                     | PNG (best quality), JPEG (smaller), or HEIC (smallest)           |
+| Show the mouse cursor                            | Includes the pointer in screenshots                              |
+| Save location › Show in Finder                   | Opens the ScreenCapture folder                                   |
+| Launch at login                                  | Starts the app when you log in                                   |
+
+**Shortcuts tab:** see [section 6](#6-set-up-keyboard-shortcuts).
+
+---
+
+## 9. Troubleshooting
+
+| Problem                                   | Fix                                                                                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Screenshots are black or capture fails    | Turn on ScreenCapture in _System Settings › Privacy & Security › Screen & System Audio Recording_, then quit and reopen the app. |
+| A shortcut doesn't work                   | Another app may be using it. Choose a different one in **Settings › Shortcuts**.                                                 |
+| No sound in recording                     | Turn on **System audio** or **Microphone** before you start, and check the microphone permission.                                |
+| I can't find the app                      | It lives in the menu bar, not the Dock. If you can't see it, the menu bar may be full; try closing other menu bar apps.          |
+| Permission stopped working after updating | Turn ScreenCapture off and on again in _Screen & System Audio Recording_.                                                        |
+
+---
+
+# For developers
+
+Built with ScreenCaptureKit, hardware-encoded AVFoundation, and SwiftUI with Liquid Glass.
 
 ## Performance notes
 
@@ -56,7 +308,7 @@ On first use, macOS asks for:
 2. **Documents folder.** Needed to save files.
 3. **Microphone.** Only if you enable it.
 
-> The default build is ad-hoc signed. macOS ties permissions to the code signature, so after a rebuild you may need to re-enable ScreenCapture under *System Settings › Privacy & Security › Screen & System Audio Recording*. Signing with a real identity (`SIGN_IDENTITY`) avoids this.
+> The default build is ad-hoc signed. macOS ties permissions to the code signature, so after a rebuild you may need to re-enable ScreenCapture under _System Settings › Privacy & Security › Screen & System Audio Recording_. Signing with a real identity (`SIGN_IDENTITY`) avoids this.
 
 ## Project layout
 
