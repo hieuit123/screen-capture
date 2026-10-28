@@ -1,1 +1,72 @@
-# screen-capture
+# ScreenCapture
+
+A menu bar screen recorder and screenshot tool for **macOS 26 (Tahoe) and later**. It's built with ScreenCaptureKit, hardware-encoded AVFoundation, and SwiftUI with Liquid Glass. The UI is modeled on Tap Record.
+
+## Features
+
+- **Record or screenshot** from a compact menu bar panel.
+- **Sources:** a whole screen, a single window, a single app (only that app's windows and audio), or a dragged **area**.
+- **Area selection:** a red selection frame with crosshair guides and a live pixel-size label. For screenshots, capture happens on release (like ⌘⇧4). For recordings you can move or resize the frame, then press **Start Recording** or Return. A single click selects the whole screen, and Esc cancels.
+- **Frame rate:** 15 / 24 / 30 / 60 / 120 fps.
+- **Quality:** Low (50% resolution), Medium (75%), High (native), Best (native, maximum bitrate). The panel shows the resulting resolution and bitrate. Other options: HEVC or H.264, MP4 or MOV.
+- **Audio:** system audio and/or microphone, each on its own track, with a microphone picker. The cursor can be shown or hidden.
+- **Screenshots:** PNG, JPEG, or HEIC, with optional copy to the clipboard.
+- **Quick Screenshot:** one shortcut (default `⌃⌥⌘D`, changeable in Settings › General or Shortcuts) instantly captures the screen under the mouse. It copies the image to the clipboard, saves it to `ScreenCapture/images`, plays a shutter sound (optional), and shows a small toast; click the toast to open the editor.
+- **Screenshot editor (Xnapper-style):** opens automatically after each screenshot (configurable). Tools: select/move (V), crop (C), rectangle (R), ellipse (O), line (L), arrow (A), pencil (P), highlighter (H), text (T), pixelate/redact (B), and numbered steps (N). You can set colour, stroke, fill, and text size; hold Shift for squares and 45° lines; and use undo/redo and arrow-key nudging. **Beautify** places the shot on a gradient background with padding, rounded corners, a shadow, and an aspect ratio (Auto, 16:9, 4:3, 1:1). Copy (⌘C), Save (⌘S), and Save As are available. The preview and the exported file are drawn by the same renderer, so they match exactly.
+- **Auto-created folders:** `~/Documents/ScreenCapture/videos` and `~/Documents/ScreenCapture/images`.
+- **After each capture:** a floating card shows a preview with *Open / Finder / Copy*, plus **View Recording History** or **View Screenshot History**, matching the capture you just made.
+- **History window:** double-click a screenshot to edit it. It's a grid grouped by date, with search, a preview inspector (video player or image plus metadata), drag-and-drop, share, and move to Trash. It updates live when files change.
+- **Global shortcuts:** customise them in **Settings › Shortcuts** (gear button, or ⌘,). Defaults: `⌃⌥⌘S` takes a screenshot, `⌃⌥⌘D` takes a quick screenshot, `⌃⌥⌘A` captures an area, and `⌃⌥⌘R` starts or stops recording. While recording, the menu bar shows a red stop icon and a timer; click it to stop.
+- **Right-click the menu bar icon** for quick actions and both history views.
+
+## Performance notes
+
+- Frames go from ScreenCaptureKit straight to the hardware encoder in YUV 4:2:0 (`420v`). There's no colour conversion or copying.
+- All writer work runs on one serial queue, with no locks. If the encoder is busy, frames are dropped rather than blocking capture.
+- Idle frames are skipped, and when the screen is static at the end, the last frame is re-stamped at stop time so the clip isn't cut short.
+- Output size is clamped to encoder limits: H.264 up to 4096×2304, HEVC up to 8K.
+- Recordings are written to a hidden temporary file and renamed when finished, so incomplete files never show up in History.
+- Thumbnails come from QuickLook and are cached in a bounded `NSCache`. Folder scans run off the main thread and are triggered by file-system events.
+
+## Build & run
+
+Xcode isn't required; the Command Line Tools are enough.
+
+```bash
+./scripts/build_app.sh          # release build -> build/ScreenCapture.app
+open build/ScreenCapture.app
+```
+
+Options: `CONFIG=debug ./scripts/build_app.sh`, or set `SIGN_IDENTITY="Apple Development: …"` to sign with your own certificate. You can also open `Package.swift` in Xcode.
+
+### DMG installer
+
+```bash
+./scripts/make_dmg.sh               # builds the app, then build/ScreenCapture-<version>.dmg
+SKIP_BUILD=1 ./scripts/make_dmg.sh  # package the existing build/ScreenCapture.app
+```
+
+The disk image contains the app and an `Applications` shortcut, so you can drag to install.
+
+### Permissions
+
+On first use, macOS asks for:
+
+1. **Screen & System Audio Recording.** Required. If the panel shows the orange banner, click **Grant Access** and enable ScreenCapture. If capture still fails, relaunch the app.
+2. **Documents folder.** Needed to save files.
+3. **Microphone.** Only if you enable it.
+
+> The default build is ad-hoc signed. macOS ties permissions to the code signature, so after a rebuild you may need to re-enable ScreenCapture under *System Settings › Privacy & Security › Screen & System Audio Recording*. Signing with a real identity (`SIGN_IDENTITY`) avoids this.
+
+## Project layout
+
+```
+Sources/ScreenCapture/
+  App/        main entry, AppDelegate (status item, popover, menus), AppModel (coordinator), window controllers
+  Models/     option enums and the persisted SettingsStore
+  Services/   ScreenRecorder (SCStream → AVAssetWriter), ScreenshotService, CaptureTargetResolver,
+              AreaSelector, ShareableContentStore, HistoryStore, ThumbnailCache, HotKeyManager, StorageManager
+  Views/      MenuView (panel), HistoryView, PostCaptureView, shared views
+Resources/Info.plist
+scripts/build_app.sh, scripts/make_icon.swift
+```
