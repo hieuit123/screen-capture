@@ -182,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
 
     private func open(_ item: CaptureItem) {
         if item.kind == .screenshot {
-            openEditor(url: item.url, image: nil)
+            openEditor(url: item.url, image: nil, beautify: false)
         } else {
             dismissPopover()
             NSWorkspace.shared.open(item.url)
@@ -230,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     }
 
     func showPostCapture(_ item: CaptureItem) {
-        let edit: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.openEditor(url: item.url, image: nil) } : nil
+        let edit: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.openEditor(url: item.url, image: nil, beautify: false) } : nil
         postCapture.show(item: item, openHistory: { [weak self] in
             self?.openHistory(item.kind, select: item.url)
         }, edit: edit)
@@ -238,25 +238,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
 
     var isPopoverShown: Bool { popover.isShown }
 
-    func showQuickCaptureToast(url: URL, image: CGImage, on displayID: CGDirectDisplayID) {
-        quickToast.show(image: image, on: displayID) { [weak self] in
-            self?.openEditor(url: url, image: image)
+    func showQuickCaptureToast(url: URL, image: CGImage, thumbnail: CGImage, on displayID: CGDirectDisplayID) {
+        let beautify = model.settings.autoApplyBeautify
+        quickToast.show(image: thumbnail, title: "Copied to clipboard",
+                        subtitle: "Saved to ScreenCapture/images · Click to edit", on: displayID) { [weak self] in
+            self?.openEditor(url: url, image: image, beautify: beautify)
         }
     }
 
-    func openEditor(url: URL, image: CGImage?) {
+    func openEditor(url: URL, image: CGImage?, beautify: Bool) {
         dismissPopover()
         if let existing = editorControllers.first(where: { $0.editorDocument.fileURL == url }) {
             existing.present()
             return
         }
-        let document = image.map { EditorDocument(image: $0, fileURL: url) } ?? EditorDocument(url: url)
+        var style = model.settings.beautifyStyle
+        style.enabled = beautify
+        let document = image.map { EditorDocument(image: $0, fileURL: url, beautify: style) }
+            ?? EditorDocument(url: url, beautify: style)
         guard let document else {
             showError("Couldn't open \(url.lastPathComponent) for editing.")
             return
         }
         document.onSaved = { [weak self] _ in self?.model.history.reload() }
-        let controller = EditorWindowController(document: document)
+        document.onBeautifyChanged = { [weak self] newStyle in self?.model.settings.beautifyStyle = newStyle }
+        let controller = EditorWindowController(document: document, settings: model.settings)
+        controller.onFinish = { [weak self] action, image, displayID in
+            let title = action == .copied ? "Copied to clipboard" : "Saved"
+            let subtitle = action == .copied ? "Also saved to ScreenCapture/images · Click to edit" : "ScreenCapture/images · Click to edit"
+            self?.quickToast.show(image: image, title: title, subtitle: subtitle, on: displayID ?? CGMainDisplayID()) {
+                self?.openEditor(url: url, image: nil, beautify: false)
+            }
+        }
         controller.onClose = { [weak self] closed in
             self?.editorControllers.removeAll { $0 === closed }
             self?.updateActivationPolicySoon()
@@ -269,7 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         dismissPopover()
         if historyController == nil {
             let controller = HistoryWindowController(history: model.history) { [weak self] item in
-                self?.openEditor(url: item.url, image: nil)
+                self?.openEditor(url: item.url, image: nil, beautify: false)
             }
             controller.onClose = { [weak self] in self?.updateActivationPolicySoon() }
             historyController = controller

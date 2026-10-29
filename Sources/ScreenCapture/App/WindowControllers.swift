@@ -50,8 +50,10 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
 final class EditorWindowController: NSWindowController, NSWindowDelegate {
     let editorDocument: EditorDocument
     var onClose: ((EditorWindowController) -> Void)?
+    /// Copy/Save finished and the window closed itself.
+    var onFinish: ((EditorFinishAction, CGImage, CGDirectDisplayID?) -> Void)?
 
-    init(document: EditorDocument) {
+    init(document: EditorDocument, settings: SettingsStore) {
         self.editorDocument = document
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1180, height: 780),
@@ -62,8 +64,11 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
 
-        let view = EditorView(doc: document) {
+        weak var weakSelf: EditorWindowController?
+        let view = EditorView(doc: document, settings: settings) {
             NSWorkspace.shared.activateFileViewerSelecting([document.fileURL])
+        } onFinish: { action, image in
+            weakSelf?.finish(action, image: image)
         }
         let hosting = NSHostingController(rootView: view)
         hosting.sceneBridgingOptions = [.toolbars]
@@ -78,6 +83,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
         super.init(window: window)
         window.delegate = self
+        weakSelf = self
     }
 
     @available(*, unavailable)
@@ -89,6 +95,13 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
         NSApp.forceActivate()
+    }
+
+    private func finish(_ action: EditorFinishAction, image: CGImage) {
+        let displayID = window?.screen?.displayID
+        // `close()` skips windowShouldClose: the work is already copied/saved.
+        window?.close()
+        onFinish?(action, image, displayID)
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -169,7 +182,8 @@ final class QuickCaptureToastController {
     private var dismissTask: Task<Void, Never>?
     private var isHovered = false
 
-    func show(image: CGImage, on displayID: CGDirectDisplayID, onClick: @escaping () -> Void) {
+    func show(image: CGImage, title: String, subtitle: String, on displayID: CGDirectDisplayID,
+              onClick: @escaping () -> Void) {
         close(animated: false)
 
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -183,6 +197,8 @@ final class QuickCaptureToastController {
 
         let view = QuickCaptureToastView(
             image: NSImage(cgImage: image, size: .zero),
+            title: title,
+            subtitle: subtitle,
             onClick: { [weak self] in
                 self?.close(animated: true)
                 onClick()

@@ -79,6 +79,8 @@ struct PostCaptureView: View {
 /// Small confirmation shown after a Quick Screenshot.
 struct QuickCaptureToastView: View {
     let image: NSImage
+    let title: String
+    let subtitle: String
     let onClick: () -> Void
     let onHoverChange: (Bool) -> Void
 
@@ -92,12 +94,12 @@ struct QuickCaptureToastView: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.primary.opacity(0.15)))
             VStack(alignment: .leading, spacing: 2) {
                 Label {
-                    Text("Copied to clipboard")
+                    Text(title)
                 } icon: {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                 }
                 .font(.callout.weight(.semibold))
-                Text("Saved to ScreenCapture/images · Click to edit")
+                Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
