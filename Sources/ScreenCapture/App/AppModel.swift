@@ -8,8 +8,9 @@ protocol AppUI: AnyObject {
     func dismissPopover()
     func phaseDidChange()
     func showPostCapture(_ item: CaptureItem)
-    func openEditor(url: URL, image: CGImage?)
-    func showQuickCaptureToast(url: URL, image: CGImage, on displayID: CGDirectDisplayID)
+    /// `beautify`: start with the default Beautify style switched on (for fresh, un-beautified captures).
+    func openEditor(url: URL, image: CGImage?, beautify: Bool)
+    func showQuickCaptureToast(url: URL, image: CGImage, thumbnail: CGImage, on displayID: CGDirectDisplayID)
     var isPopoverShown: Bool { get }
     func openHistory(_ kind: CaptureKind, select url: URL?)
     func showError(_ message: String)
@@ -112,20 +113,27 @@ final class AppModel {
             }
             let target = try await CaptureTargetResolver.resolve(source: .display, settings: settings, area: nil, displayID: displayID)
             let image = try await ScreenshotService.capture(target: target, showsCursor: settings.showsCursor)
-            ScreenshotService.copyToPasteboard(image)
+            let output = finalImage(for: image)
+            ScreenshotService.copyToPasteboard(output)
             if settings.playCaptureSound { Self.shutterSound?.play() }
 
             let format = settings.imageFormat
             let url = try StorageManager.newFileURL(kind: .screenshot, fileExtension: format.fileExtension)
             try await Task.detached(priority: .userInitiated) {
-                try ScreenshotService.write(image, to: url, format: format)
+                try ScreenshotService.write(output, to: url, format: format)
             }.value
             settings.lastActionKind = .screenshot
             history.reload()
-            ui?.showQuickCaptureToast(url: url, image: image, on: displayID)
+            ui?.showQuickCaptureToast(url: url, image: image, thumbnail: output, on: displayID)
         } catch {
             ui?.showError(error.localizedDescription)
         }
+    }
+
+    /// The image that goes to the clipboard and disk: beautified when auto-apply is on.
+    private func finalImage(for image: CGImage) -> CGImage {
+        guard settings.autoApplyBeautify else { return image }
+        return EditorRenderer.render(image: image, pixelated: nil, annotations: [], beautify: settings.beautifyStyle.applied) ?? image
     }
 
     private static let shutterSound: NSSound? = {
@@ -217,9 +225,10 @@ final class AppModel {
             let format = settings.imageFormat
             let url = try StorageManager.newFileURL(kind: .screenshot, fileExtension: format.fileExtension)
 
-            if settings.copyScreenshotToClipboard { ScreenshotService.copyToPasteboard(image) }
+            let output = finalImage(for: image)
+            if settings.copyScreenshotToClipboard { ScreenshotService.copyToPasteboard(output) }
             try await Task.detached(priority: .userInitiated) {
-                try ScreenshotService.write(image, to: url, format: format)
+                try ScreenshotService.write(output, to: url, format: format)
             }.value
             didSave(url, kind: .screenshot, image: image)
         } catch CaptureError.cancelled {
@@ -233,7 +242,8 @@ final class AppModel {
         settings.lastActionKind = kind
         history.reload()
         if kind == .screenshot, settings.openEditorAfterScreenshot {
-            ui?.openEditor(url: url, image: image)
+            // The editor gets the raw capture; Beautify stays editable on top of it.
+            ui?.openEditor(url: url, image: image, beautify: settings.autoApplyBeautify)
             return
         }
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { Int64($0) } ?? 0

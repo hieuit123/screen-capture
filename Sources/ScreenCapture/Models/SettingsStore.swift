@@ -26,6 +26,14 @@ final class SettingsStore {
     var showPostCapturePanel: Bool { didSet { defaults.set(showPostCapturePanel, forKey: Keys.postCapture) } }
     var openEditorAfterScreenshot: Bool { didSet { defaults.set(openEditorAfterScreenshot, forKey: Keys.openEditor) } }
     var playCaptureSound: Bool { didSet { defaults.set(playCaptureSound, forKey: Keys.captureSound) } }
+    var closeEditorAfterCopyOrSave: Bool { didSet { defaults.set(closeEditorAfterCopyOrSave, forKey: Keys.closeEditor) } }
+
+    /// Apply the Beautify style to every new screenshot (clipboard, file and editor).
+    var autoApplyBeautify: Bool { didSet { defaults.set(autoApplyBeautify, forKey: Keys.autoBeautify) } }
+    /// Default Beautify style. Also updated when the style is changed in the editor.
+    var beautifyStyle: BeautifySettings {
+        didSet { defaults.set(try? JSONEncoder().encode(beautifyStyle), forKey: Keys.beautifyStyle) }
+    }
 
     /// Global shortcuts. A missing entry means the shortcut is disabled.
     var shortcuts: [ShortcutAction: Shortcut] {
@@ -73,6 +81,10 @@ final class SettingsStore {
         showPostCapturePanel = d.object(forKey: Keys.postCapture) as? Bool ?? true
         openEditorAfterScreenshot = d.object(forKey: Keys.openEditor) as? Bool ?? true
         playCaptureSound = d.object(forKey: Keys.captureSound) as? Bool ?? true
+        closeEditorAfterCopyOrSave = d.object(forKey: Keys.closeEditor) as? Bool ?? true
+        autoApplyBeautify = d.object(forKey: Keys.autoBeautify) as? Bool ?? false
+        beautifyStyle = d.data(forKey: Keys.beautifyStyle).flatMap { try? JSONDecoder().decode(BeautifySettings.self, from: $0) }
+            ?? BeautifySettings()
         if let data = d.data(forKey: Keys.shortcuts),
            let stored = try? JSONDecoder().decode([String: Shortcut].self, from: data) {
             var loaded = Dictionary(uniqueKeysWithValues: stored.compactMap { key, value in
@@ -112,5 +124,8 @@ final class SettingsStore {
         static let shortcuts = "shortcuts.v1"
         static let shortcutActionsSeen = "shortcuts.seenActions"
         static let captureSound = "playCaptureSound"
+        static let closeEditor = "closeEditorAfterCopyOrSave"
+        static let autoBeautify = "autoApplyBeautify"
+        static let beautifyStyle = "beautifyStyle.v1"
     }
 }

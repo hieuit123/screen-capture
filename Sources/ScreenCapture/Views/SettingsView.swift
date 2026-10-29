@@ -9,6 +9,9 @@ struct SettingsView: View {
             Tab("General", systemImage: "gearshape") {
                 GeneralSettingsView(settings: settings)
             }
+            Tab("Beautify", systemImage: "sparkles") {
+                BeautifySettingsView(settings: settings)
+            }
             Tab("Shortcuts", systemImage: "keyboard") {
                 ShortcutSettingsView(settings: settings)
             }
@@ -26,6 +29,7 @@ private struct GeneralSettingsView: View {
         Form {
             Section("After Capture") {
                 Toggle("Open the editor after taking a screenshot", isOn: $settings.openEditorAfterScreenshot)
+                Toggle("Close the editor after copying (⌘C) or saving (⌘S)", isOn: $settings.closeEditorAfterCopyOrSave)
                 Toggle("Show a preview card after capturing", isOn: $settings.showPostCapturePanel)
                 Toggle("Copy screenshots to the clipboard", isOn: $settings.copyScreenshotToClipboard)
             }
@@ -79,6 +83,64 @@ private struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+struct BeautifySettingsView: View {
+    @Bindable var settings: SettingsStore
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Auto-apply Beautify to new screenshots", isOn: $settings.autoApplyBeautify)
+                BeautifyPreview(style: settings.beautifyStyle)
+                    .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .opacity(settings.autoApplyBeautify ? 1 : 0.5)
+            } footer: {
+                Text("Applies to every new screenshot, including Quick Screenshots: the clipboard and saved file get the styled image, and the editor opens with Beautify on so you can still change or remove it. Changes you make in the editor become the new default.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            BeautifyStyleControls(style: $settings.beautifyStyle)
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Miniature preview of a Beautify style with a mock window.
+private struct BeautifyPreview: View {
+    let style: BeautifySettings
+
+    var body: some View {
+        GeometryReader { geo in
+            let mock = CGSize(width: 1600, height: 1000)
+            let layout = CanvasLayout(imageSize: mock, beautify: style.applied)
+            let scale = min(geo.size.width / layout.canvasSize.width, geo.size.height / layout.canvasSize.height)
+            let image = CGRect(x: layout.imageRect.minX * scale, y: layout.imageRect.minY * scale,
+                               width: layout.imageRect.width * scale, height: layout.imageRect.height * scale)
+            ZStack(alignment: .topLeading) {
+                LinearGradient(colors: style.preset.colors.map { Color(nsColor: $0) },
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                VStack(spacing: 0) {
+                    HStack(spacing: 3) {
+                        ForEach([Color.red, .yellow, .green], id: \.self) { Circle().fill($0).frame(width: 5, height: 5) }
+                        Spacer()
+                    }
+                    .padding(5)
+                    .background(Color(white: 0.92))
+                    Color.white
+                }
+                .frame(width: image.width, height: image.height)
+                .clipShape(.rect(cornerRadius: layout.cornerRadius * scale))
+                .shadow(color: .black.opacity(style.shadow ? 0.35 : 0), radius: layout.shadowRadius * scale / 2,
+                        y: layout.shadowRadius * scale * 0.4)
+                .position(x: image.midX, y: image.midY)
+            }
+            .frame(width: layout.canvasSize.width * scale, height: layout.canvasSize.height * scale)
+            .clipShape(.rect(cornerRadius: 6))
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
     }
 }
 

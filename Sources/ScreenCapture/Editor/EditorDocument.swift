@@ -196,7 +196,7 @@ struct GradientPreset: Identifiable {
     ]
 }
 
-enum AspectPreset: String, CaseIterable, Identifiable {
+enum AspectPreset: String, CaseIterable, Identifiable, Codable {
     case auto, wide, standard, square
 
     var id: String { rawValue }
@@ -218,7 +218,7 @@ enum AspectPreset: String, CaseIterable, Identifiable {
     }
 }
 
-struct BeautifySettings: Equatable {
+struct BeautifySettings: Equatable, Codable {
     var enabled = false
     var presetID = 0
     /// Fractions of the image's longer side.
@@ -228,6 +228,13 @@ struct BeautifySettings: Equatable {
     var aspect: AspectPreset = .auto
 
     var preset: GradientPreset { GradientPreset.all.first { $0.id == presetID } ?? GradientPreset.all[0] }
+
+    /// The same style with Beautify switched on.
+    var applied: BeautifySettings {
+        var copy = self
+        copy.enabled = true
+        return copy
+    }
 }
 
 /// Where the screenshot sits inside the exported canvas.
@@ -285,8 +292,14 @@ final class EditorDocument {
     private(set) var pixelated: CGImage?
     private(set) var annotations: [Annotation] = []
     var beautify = BeautifySettings() {
-        didSet { if beautify != oldValue { isDirty = true } }
+        didSet {
+            guard beautify != oldValue else { return }
+            isDirty = true
+            onBeautifyChanged?(beautify)
+        }
     }
+    /// Lets the app remember the last Beautify style as the default for new screenshots.
+    @ObservationIgnored var onBeautifyChanged: ((BeautifySettings) -> Void)?
 
     var tool: EditorTool = .arrow {
         didSet {
@@ -325,17 +338,21 @@ final class EditorDocument {
         annotations.filter { $0.id != textEditing?.id } + (draft.map { [$0] } ?? [])
     }
 
-    init(image: CGImage, fileURL: URL) {
+    /// `beautify` is the starting style; it does not count as an unsaved change.
+    init(image: CGImage, fileURL: URL, beautify: BeautifySettings = BeautifySettings()) {
         self.image = image
         self.fileURL = fileURL
+        self.beautify = beautify
         pixelated = Self.makePixelated(image)
+        // @Observable routes init assignments through didSet; the starting style isn't an edit.
+        isDirty = false
     }
 
-    convenience init?(url: URL) {
+    convenience init?(url: URL, beautify: BeautifySettings = BeautifySettings()) {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
         else { return nil }
-        self.init(image: image, fileURL: url)
+        self.init(image: image, fileURL: url, beautify: beautify)
     }
 
     // MARK: Style
@@ -607,8 +624,8 @@ final class EditorDocument {
         return EditorRenderer.render(image: image, pixelated: pixelated, annotations: annotations, beautify: beautify)
     }
 
-    func save(to url: URL? = nil) async throws {
-        guard let output = renderOutput() else { throw CocoaError(.fileWriteUnknown) }
+    func save(to url: URL? = nil, rendered: CGImage? = nil) async throws {
+        guard let output = rendered ?? renderOutput() else { throw CocoaError(.fileWriteUnknown) }
         let target = url ?? fileURL
         let format = ImageFormat.from(extension: target.pathExtension)
         try await Task.detached(priority: .userInitiated) {

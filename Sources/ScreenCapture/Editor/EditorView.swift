@@ -1,8 +1,15 @@
 import SwiftUI
 
+enum EditorFinishAction {
+    case copied, saved
+}
+
 struct EditorView: View {
     @Bindable var doc: EditorDocument
+    @Bindable var settings: SettingsStore
     let showInFinder: () -> Void
+    /// Called when ⌘C / ⌘S should close the editor (see Settings › Close the editor after copying or saving).
+    let onFinish: (EditorFinishAction, CGImage) -> Void
 
     @State private var showInspector = true
     @State private var toast: String?
@@ -17,7 +24,7 @@ struct EditorView: View {
         .frame(minWidth: 760, minHeight: 480)
         .toolbar { toolbarContent }
         .inspector(isPresented: $showInspector) {
-            BeautifyPanel(doc: doc, copy: copy, save: save, saveAs: saveAs, showInFinder: showInFinder)
+            BeautifyPanel(doc: doc, settings: settings, copy: copy, save: save, saveAs: saveAs, showInFinder: showInFinder)
                 .inspectorColumnWidth(min: 250, ideal: 280, max: 340)
         }
         .overlay(alignment: .bottom) {
@@ -36,7 +43,11 @@ struct EditorView: View {
         // Edit › Copy (⌘C) copies the edited image. While typing, the text field handles ⌘C itself.
         .onCopyCommand {
             guard doc.textEditing == nil, let image = doc.renderOutput() else { return [] }
-            flash("Copied to clipboard")
+            DispatchQueue.main.async {
+                // Write the image ourselves too, so the clipboard is filled before the window can close.
+                ScreenshotService.copyToPasteboard(image)
+                finishOrFlash(.copied, image)
+            }
             return [NSItemProvider(object: NSImage(cgImage: image, size: .zero))]
         }
     }
@@ -57,28 +68,43 @@ struct EditorView: View {
         ToolbarItemGroup(placement: .primaryAction) {
             Button("Copy", systemImage: "doc.on.doc") { copy() }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
-                .help("Copy image (⌘C)")
+                .help(settings.closeEditorAfterCopyOrSave ? "Copy image and close (⌘C)" : "Copy image (⌘C)")
             Button("Save", systemImage: "square.and.arrow.down") { save() }
                 .keyboardShortcut("s", modifiers: .command)
-                .help("Save (⌘S)")
+                .help(settings.closeEditorAfterCopyOrSave ? "Save and close (⌘S)" : "Save (⌘S)")
             Button("Inspector", systemImage: "sidebar.trailing") { showInspector.toggle() }
                 .help("Show or hide the Beautify panel")
         }
     }
 
     private func copy() {
-        doc.copyToPasteboard()
-        flash("Copied to clipboard")
+        guard let image = doc.renderOutput() else { return }
+        ScreenshotService.copyToPasteboard(image)
+        finishOrFlash(.copied, image)
     }
 
     private func save() {
+        guard let image = doc.renderOutput() else { return }
         Task {
             do {
-                try await doc.save()
-                flash("Saved")
+                try await doc.save(rendered: image)
+                finishOrFlash(.saved, image)
             } catch {
                 flash("Save failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    /// Closes the editor after copy/save when enabled in Settings, otherwise shows an inline confirmation.
+    private func finishOrFlash(_ action: EditorFinishAction, _ image: CGImage) {
+        guard settings.closeEditorAfterCopyOrSave else {
+            flash(action == .copied ? "Copied to clipboard" : "Saved")
+            return
+        }
+        Task {
+            // Keep the file in History identical to what was copied.
+            if action == .copied, doc.isDirty { try? await doc.save(rendered: image) }
+            onFinish(action, image)
         }
     }
 
@@ -452,6 +478,7 @@ private struct AnnotationLayer: View {
 
 private struct BeautifyPanel: View {
     @Bindable var doc: EditorDocument
+    @Bindable var settings: SettingsStore
     let copy: () -> Void
     let save: () -> Void
     let saveAs: () -> Void
@@ -464,56 +491,73 @@ private struct BeautifyPanel: View {
                     Label("Beautify", systemImage: "sparkles")
                 }
                 .toggleStyle(.switch)
+                Toggle("Auto-apply to new screenshots", isOn: $settings.autoApplyBeautify)
+                    .font(.callout)
             } footer: {
-                Text("Place the screenshot on a background with padding, rounded corners and a shadow.")
+                Text("Place the screenshot on a background with padding, rounded corners and a shadow. Your last style is remembered.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Background") {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                    ForEach(GradientPreset.all) { preset in
-                        let isSelected = doc.beautify.presetID == preset.id
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(LinearGradient(colors: preset.colors.map { Color(nsColor: $0) },
-                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(height: 40)
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(isSelected ? Color.accentColor : .primary.opacity(0.1), lineWidth: isSelected ? 2.5 : 1))
-                            .help(preset.name)
-                            .onTapGesture {
-                                doc.beautify.presetID = preset.id
-                                doc.beautify.enabled = true
-                            }
-                    }
-                }
-                .padding(.vertical, 4)
+            BeautifyStyleControls(style: $doc.beautify, isEnabled: doc.beautify.enabled) {
+                doc.beautify.enabled = true
             }
-
-            Section("Layout") {
-                LabeledContent("Padding") {
-                    Slider(value: $doc.beautify.padding, in: 0.02...0.25)
-                }
-                LabeledContent("Corners") {
-                    Slider(value: $doc.beautify.cornerRadius, in: 0...0.05)
-                }
-                Toggle("Shadow", isOn: $doc.beautify.shadow)
-                Picker("Aspect", selection: $doc.beautify.aspect) {
-                    ForEach(AspectPreset.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            }
-            .disabled(!doc.beautify.enabled)
 
             Section("Export") {
-                Button("Copy to Clipboard", systemImage: "doc.on.doc", action: copy)
-                Button("Save", systemImage: "square.and.arrow.down", action: save)
+                Button(settings.closeEditorAfterCopyOrSave ? "Copy & Close" : "Copy to Clipboard",
+                       systemImage: "doc.on.doc", action: copy)
+                Button(settings.closeEditorAfterCopyOrSave ? "Save & Close" : "Save",
+                       systemImage: "square.and.arrow.down", action: save)
                 Button("Save As…", systemImage: "square.and.arrow.down.on.square", action: saveAs)
                 Button("Show in Finder", systemImage: "folder", action: showInFinder)
             }
             .buttonStyle(.borderless)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Background preset, padding, corners, shadow and aspect controls. Shared by the editor and Settings.
+struct BeautifyStyleControls: View {
+    @Binding var style: BeautifySettings
+    var isEnabled = true
+    var onPickPreset: (() -> Void)?
+
+    var body: some View {
+        Section("Background") {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                ForEach(GradientPreset.all) { preset in
+                    let isSelected = style.presetID == preset.id
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LinearGradient(colors: preset.colors.map { Color(nsColor: $0) },
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(height: 36)
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(isSelected ? Color.accentColor : .primary.opacity(0.1), lineWidth: isSelected ? 2.5 : 1))
+                        .help(preset.name)
+                        .onTapGesture {
+                            style.presetID = preset.id
+                            onPickPreset?()
+                        }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+
+        Section("Layout") {
+            LabeledContent("Padding") {
+                Slider(value: $style.padding, in: 0.02...0.25)
+            }
+            LabeledContent("Corners") {
+                Slider(value: $style.cornerRadius, in: 0...0.05)
+            }
+            Toggle("Shadow", isOn: $style.shadow)
+            Picker("Aspect", selection: $style.aspect) {
+                ForEach(AspectPreset.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        }
+        .disabled(!isEnabled)
     }
 }
 
