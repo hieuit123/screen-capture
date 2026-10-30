@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1170" width="1600" height="1170">
+  <style>
+    text { font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif; fill: #111827; }
+    .title { font-size: 34px; font-weight: 700; }
+    .subtitle { font-size: 16px; fill: #6b7280; }
+    .h { font-size: 21px; font-weight: 600; }
+    .step { font-size: 18px; font-weight: 600; }
+    .line { font-size: 15px; fill: #374151; }
+    .desc { font-size: 16px; fill: #374151; }
+    .label { font-size: 16px; font-weight: 600; }
+    .note { font-size: 14px; fill: #6b7280; }
+    .num { font-size: 17px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+    .badge { font-size: 13px; font-weight: 600; text-anchor: middle; }
+    .code { font-family: 'SF Mono', Menlo, monospace; font-size: 14px; fill: #e5e7eb; }
+    .panel { fill: #ffffff; stroke: #e5e7eb; stroke-width: 1.5; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1170" fill="#f9fafb"/>
+
+  <text class="title" x="40" y="72">ScreenCapture — Install Guide</text>
+  <text class="subtitle" x="40" y="102">Requires macOS 26 (Tahoe) or later · install from ScreenCapture-1.4.6.dmg</text>
+
+  <!-- Panel 1: Install -->
+  <g id="panel-install">
+    <rect class="panel" x="40" y="130" width="1520" height="270" rx="12"/>
+    <circle cx="78" cy="166" r="16" fill="#dbeafe"/>
+    <circle cx="78" cy="166" r="6" fill="#2563eb"/>
+    <text class="h" x="104" y="173">Install</text>
+
+    <g id="install-1">
+      <rect x="64" y="198" width="320" height="180" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+      <circle cx="98" cy="236" r="18" fill="#2563eb"/>
+      <text class="num" x="98" y="242">1</text>
+      <text class="step" x="126" y="243">Open the disk image</text>
+      <text class="line" x="88" y="286">Double-click</text>
+      <text class="line" x="88" y="310">ScreenCapture-1.4.6.dmg</text>
+      <text class="line" x="88" y="334">(usually in Downloads).</text>
+    </g>
+
+    <g id="install-2">
+      <rect x="448" y="198" width="320" height="180" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+      <circle cx="482" cy="236" r="18" fill="#2563eb"/>
+      <text class="num" x="482" y="242">2</text>
+      <text class="step" x="510" y="243">Drag to Applications</text>
+      <text class="line" x="472" y="286">Drag the ScreenCapture icon</text>
+      <text class="line" x="472" y="310">onto the Applications folder</text>
+      <text class="line" x="472" y="334">shortcut in the same window.</text>
+    </g>
+
+    <g id="install-3">
+      <rect x="832" y="198" width="320" height="180" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+      <circle cx="866" cy="236" r="18" fill="#2563eb"/>
+      <text class="num" x="866" y="242">3</text>
+      <text class="step" x="894" y="243">Launch</text>
+      <text class="line" x="856" y="286">Open it from Applications</text>
+      <text class="line" x="856" y="310">or Spotlight (⌘ Space).</text>
+      <text class="line" x="856" y="334">It lives in the menu bar —</text>
+      <text class="line" x="856" y="358">there is no Dock icon.</text>
+    </g>
+
+    <g id="install-4">
+      <rect x="1216" y="198" width="320" height="180" rx="10" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5"/>
+      <circle cx="1250" cy="236" r="18" fill="#ea580c"/>
+      <text class="num" x="1250" y="242">4</text>
+      <text class="step" x="1278" y="243">If macOS blocks it</text>
+      <text class="line" x="1240" y="286">System Settings › Privacy &amp;</text>
+      <text class="line" x="1240" y="310">Security › Open Anyway.</text>
+      <text class="line" x="1240" y="334">The app isn't notarized, so</text>
+      <text class="line" x="1240" y="358">this is expected the first time.</text>
+    </g>
+
+    <line id="edge-i1-i2" x1="392" y1="288" x2="440" y2="288" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+    <line id="edge-i2-i3" x1="776" y1="288" x2="824" y2="288" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+    <line id="edge-i3-i4" x1="1160" y1="288" x2="1208" y2="288" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  </g>
+
+  <!-- Panel 2: Permissions -->
+  <g id="panel-permissions">
+    <rect class="panel" x="40" y="430" width="1520" height="330" rx="12"/>
+    <circle cx="78" cy="466" r="16" fill="#dcfce7"/>
+    <circle cx="78" cy="466" r="6" fill="#16a34a"/>
+    <text class="h" x="104" y="473">Grant permissions (macOS asks on first use)</text>
+
+    <g id="perm-screen">
+      <rect x="64" y="498" width="320" height="240" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+      <text class="step" x="88" y="538">Screen Recording</text>
+      <rect x="88" y="552" width="84" height="24" rx="12" fill="#fee2e2"/>
+      <text class="badge" x="130" y="569" fill="#b91c1c">Required</text>
+      <text class="line" x="88" y="604">Click Grant Access in the menu</text>
+      <text class="line" x="88" y="628">bar panel, enable ScreenCapture,</text>
+      <text class="line" x="88" y="652">then relaunch the app.</text>
+      <text class="note" x="88" y="684">Privacy &amp; Security › Screen &amp;</text>
+      <text class="note" x="88" y="706">System Audio Recording</text>
+    </g>
+
+    <g id="perm-documents">
+      <rect x="448" y="498" width="320" height="240" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+      <text class="step" x="472" y="538">Documents folder</text>
+      <rect x="472" y="552" width="84" height="24" rx="12" fill="#fee2e2"/>
+      <text class="badge" x="514" y="569" fill="#b91c1c">Required</text>
+      <text class="line" x="472" y="604">Click Allow when macOS asks.</text>
+      <text class="line" x="472" y="628">Captures are saved to</text>
+      <text class="line" x="472" y="652">~/Documents/ScreenCapture</text>
+      <text class="note" x="472" y="684">videos/ for recordings,</text>
+      <text class="note" x="472" y="706">images/ for screenshots</text>
+    </g>
+
+    <g id="perm-microphone">
+      <rect x="832" y="498" width="320" height="240" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+      <text class="step" x="856" y="538">Microphone</text>
+      <rect x="856" y="552" width="84" height="24" rx="12" fill="#f3f4f6"/>
+      <text class="badge" x="898" y="569" fill="#4b5563">Optional</text>
+      <text class="line" x="856" y="604">Asked only when you turn on</text>
+      <text class="line" x="856" y="628">Microphone for a recording.</text>
+      <text class="line" x="856" y="652">Pick the input in the panel.</text>
+      <text class="note" x="856" y="684">Privacy &amp; Security ›</text>
+      <text class="note" x="856" y="706">Microphone</text>
+    </g>
+
+    <g id="perm-automation">
+      <rect x="1216" y="498" width="320" height="240" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+      <text class="step" x="1240" y="538">Automation › Chrome</text>
+      <rect x="1240" y="552" width="84" height="24" rx="12" fill="#f3f4f6"/>
+      <text class="badge" x="1282" y="569" fill="#4b5563">Optional</text>
+      <text class="line" x="1240" y="604">Only for full-page screenshots.</text>
+      <text class="line" x="1240" y="628">Allow “control Google Chrome”,</text>
+      <text class="line" x="1240" y="652">and in Chrome turn on:</text>
+      <text class="note" x="1240" y="684">View › Developer › Allow</text>
+      <text class="note" x="1240" y="706">JavaScript from Apple Events</text>
+    </g>
+  </g>
+
+  <!-- Panel 3: Updating -->
+  <g id="panel-update">
+    <rect class="panel" x="40" y="790" width="745" height="350" rx="12"/>
+    <circle cx="78" cy="826" r="16" fill="#ede9fe"/>
+    <circle cx="78" cy="826" r="6" fill="#9333ea"/>
+    <text class="h" x="104" y="833">Updating to a new version</text>
+
+    <circle cx="80" cy="874" r="14" fill="#9333ea"/>
+    <text class="num" x="80" y="880" style="font-size:15px">1</text>
+    <text class="desc" x="106" y="880">Quit ScreenCapture (right-click the menu bar icon › Quit).</text>
+
+    <circle cx="80" cy="920" r="14" fill="#9333ea"/>
+    <text class="num" x="80" y="926" style="font-size:15px">2</text>
+    <text class="desc" x="106" y="926">Open the new DMG and drag the app to Applications › Replace.</text>
+
+    <circle cx="80" cy="966" r="14" fill="#9333ea"/>
+    <text class="num" x="80" y="972" style="font-size:15px">3</text>
+    <text class="desc" x="106" y="972">If capturing stops working, macOS dropped the permission:</text>
+    <text class="desc" x="106" y="998">turn ScreenCapture off and on in Screen &amp; System Audio</text>
+    <text class="desc" x="106" y="1022">Recording (or remove it with − and add it again), then relaunch.</text>
+
+    <circle cx="80" cy="1062" r="14" fill="#9333ea"/>
+    <text class="num" x="80" y="1068" style="font-size:15px">4</text>
+    <text class="desc" x="106" y="1068">Allow Automation for Chrome again if full-page capture asks.</text>
+
+    <text class="note" x="64" y="1114">Builds are ad-hoc signed, so macOS treats each new version as a new app.</text>
+  </g>
+
+  <!-- Panel 4: Troubleshooting and building -->
+  <g id="panel-trouble">
+    <rect class="panel" x="815" y="790" width="745" height="350" rx="12"/>
+    <circle cx="853" cy="826" r="16" fill="#fee2e2"/>
+    <circle cx="853" cy="826" r="6" fill="#dc2626"/>
+    <text class="h" x="879" y="833">Troubleshooting &amp; building from source</text>
+
+    <text class="label" x="839" y="876">“ScreenCapture can't be opened”</text>
+    <text class="desc" x="839" y="900">Use Open Anyway (step 4), or clear the download flag in Terminal:</text>
+    <rect x="839" y="912" width="697" height="36" rx="6" fill="#111827"/>
+    <text class="code" x="855" y="935">xattr -dr com.apple.quarantine /Applications/ScreenCapture.app</text>
+
+    <text class="label" x="839" y="984">Orange banner in the menu bar panel</text>
+    <text class="desc" x="839" y="1008">Screen Recording is off: click Grant Access, enable it, relaunch.</text>
+
+    <text class="label" x="839" y="1046">Build it yourself (Command Line Tools, no Xcode)</text>
+    <rect x="839" y="1058" width="697" height="64" rx="6" fill="#111827"/>
+    <text class="code" x="855" y="1084" xml:space="preserve">./scripts/build_app.sh   → build/ScreenCapture.app</text>
+    <text class="code" x="855" y="1108" xml:space="preserve">./scripts/make_dmg.sh    → build/ScreenCapture-&lt;version&gt;.dmg</text>
+  </g>
+</svg>

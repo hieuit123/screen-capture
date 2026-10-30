@@ -1,0 +1,241 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1190" width="1600" height="1190">
+  <style>
+    text { font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif; fill: #111827; }
+    .title { font-size: 34px; font-weight: 700; }
+    .subtitle { font-size: 16px; fill: #6b7280; }
+    .h { font-size: 21px; font-weight: 600; }
+    .key { font-size: 15px; font-weight: 600; text-anchor: middle; }
+    .desc { font-size: 16px; fill: #374151; }
+    .note { font-size: 14px; fill: #6b7280; }
+    .step { font-size: 18px; font-weight: 600; }
+    .stepline { font-size: 15px; fill: #374151; }
+    .num { font-size: 17px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+    .chip { fill: #f3f4f6; stroke: #d1d5db; stroke-width: 1.2; }
+    .panel { fill: #ffffff; stroke: #e5e7eb; stroke-width: 1.5; }
+  </style>
+  <defs>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0d9488"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1190" fill="#f9fafb"/>
+
+  <!-- Title -->
+  <text class="title" x="40" y="72">ScreenCapture — Quick Guide</text>
+  <text class="subtitle" x="40" y="102">Menu bar screen recorder, screenshot tool and editor · version 1.4.6</text>
+
+  <!-- Panel 1: Capture shortcuts -->
+  <g id="panel-capture">
+    <rect class="panel" x="40" y="130" width="745" height="350" rx="12"/>
+    <circle cx="78" cy="166" r="16" fill="#dbeafe"/>
+    <circle cx="78" cy="166" r="6" fill="#2563eb"/>
+    <text class="h" x="104" y="173">Capture (global shortcuts)</text>
+
+    <rect class="chip" x="64" y="196" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="217">⌃⌥⌘S</text>
+    <text class="desc" x="182" y="218">Take Screenshot (screen, window, app or area from the menu)</text>
+
+    <rect class="chip" x="64" y="242" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="263">⌃⌥⌘D</text>
+    <text class="desc" x="182" y="264">Quick Screenshot: screen under the mouse → clipboard + saved</text>
+
+    <rect class="chip" x="64" y="288" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="309">⌃⌥⌘A</text>
+    <text class="desc" x="182" y="310">Capture Area: drag to select, then the editor opens</text>
+
+    <rect class="chip" x="64" y="334" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="355">⌃⌥⌘F</text>
+    <text class="desc" x="182" y="356">Full-Page Screenshot of the active Chrome tab</text>
+
+    <rect class="chip" x="64" y="380" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="401">⌃⌥⌘R</text>
+    <text class="desc" x="182" y="402">Start / Stop Recording</text>
+
+    <rect class="chip" x="64" y="426" width="100" height="32" rx="6"/>
+    <text class="key" x="114" y="447">Right-click</text>
+    <text class="desc" x="182" y="448">Menu bar icon: quick actions, history, settings</text>
+  </g>
+
+  <!-- Panel 2: Editor tools -->
+  <g id="panel-tools">
+    <rect class="panel" x="815" y="130" width="745" height="350" rx="12"/>
+    <circle cx="853" cy="166" r="16" fill="#ede9fe"/>
+    <circle cx="853" cy="166" r="6" fill="#9333ea"/>
+    <text class="h" x="879" y="173">Editor tools (single key)</text>
+
+    <rect class="chip" x="839" y="200" width="72" height="32" rx="6"/>
+    <text class="key" x="875" y="221">V</text>
+    <text class="desc" x="925" y="222">Select &amp; Move</text>
+
+    <rect class="chip" x="839" y="246" width="72" height="32" rx="6"/>
+    <text class="key" x="875" y="267">1 / T</text>
+    <text class="desc" x="925" y="268">Text</text>
+
+    <rect class="chip" x="839" y="292" width="72" height="32" rx="6"/>
+    <text class="key" x="875" y="313">2 / A</text>
+    <text class="desc" x="925" y="314">Arrow</text>
+
+    <rect class="chip" x="839" y="338" width="72" height="32" rx="6"/>
+    <text class="key" x="875" y="359">3 / K</text>
+    <text class="desc" x="925" y="360">Black box (redact)</text>
+
+    <rect class="chip" x="839" y="384" width="72" height="32" rx="6"/>
+    <text class="key" x="875" y="405">4</text>
+    <text class="desc" x="925" y="406">Shapes · 4 again cycles</text>
+
+    <rect class="chip" x="1180" y="200" width="56" height="32" rx="6"/>
+    <text class="key" x="1208" y="221">P</text>
+    <text class="desc" x="1250" y="222">Pencil</text>
+
+    <rect class="chip" x="1180" y="246" width="56" height="32" rx="6"/>
+    <text class="key" x="1208" y="267">H</text>
+    <text class="desc" x="1250" y="268">Highlighter</text>
+
+    <rect class="chip" x="1180" y="292" width="56" height="32" rx="6"/>
+    <text class="key" x="1208" y="313">B</text>
+    <text class="desc" x="1250" y="314">Pixelate</text>
+
+    <rect class="chip" x="1180" y="338" width="56" height="32" rx="6"/>
+    <text class="key" x="1208" y="359">N</text>
+    <text class="desc" x="1250" y="360">Step number</text>
+
+    <rect class="chip" x="1180" y="384" width="56" height="32" rx="6"/>
+    <text class="key" x="1208" y="405">C</text>
+    <text class="desc" x="1250" y="406">Crop (Return applies)</text>
+
+    <text class="note" x="839" y="456">Shapes: rectangle outline (default) → ellipse → line. Toolbar buttons show their 1–4 badge.</text>
+  </g>
+
+  <!-- Panel 3: Editing marks -->
+  <g id="panel-editing">
+    <rect class="panel" x="40" y="510" width="745" height="360" rx="12"/>
+    <circle cx="78" cy="546" r="16" fill="#dcfce7"/>
+    <circle cx="78" cy="546" r="6" fill="#16a34a"/>
+    <text class="h" x="104" y="553">Editing marks</text>
+
+    <rect class="chip" x="64" y="577" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="597">Click</text>
+    <text class="desc" x="222" y="598">Select a mark (handles appear)</text>
+
+    <rect class="chip" x="64" y="613" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="633">Drag</text>
+    <text class="desc" x="222" y="634">Move the selected mark</text>
+
+    <rect class="chip" x="64" y="649" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="669">Drag a handle</text>
+    <text class="desc" x="222" y="670">Resize · hold ⇧ to keep proportions / snap to 45°</text>
+
+    <rect class="chip" x="64" y="685" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="705">Double-click</text>
+    <text class="desc" x="222" y="706">Edit text</text>
+
+    <rect class="chip" x="64" y="721" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="741">Click outside</text>
+    <text class="desc" x="222" y="742">Finish text / shape → back to Select (V)</text>
+
+    <rect class="chip" x="64" y="757" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="777">⌫  Delete</text>
+    <text class="desc" x="222" y="778">Remove the selected mark · Esc deselects</text>
+
+    <rect class="chip" x="64" y="793" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="813">← → ↑ ↓</text>
+    <text class="desc" x="222" y="814">Nudge 1 px · with ⇧ 10 px</text>
+
+    <rect class="chip" x="64" y="829" width="140" height="30" rx="6"/>
+    <text class="key" x="134" y="849">⌘Z  /  ⇧⌘Z</text>
+    <text class="desc" x="222" y="850">Undo / Redo</text>
+  </g>
+
+  <!-- Panel 4: View, style and export -->
+  <g id="panel-view">
+    <rect class="panel" x="815" y="510" width="745" height="360" rx="12"/>
+    <circle cx="853" cy="546" r="16" fill="#fed7aa"/>
+    <circle cx="853" cy="546" r="6" fill="#ea580c"/>
+    <text class="h" x="879" y="553">Zoom, style and export</text>
+
+    <rect class="chip" x="839" y="577" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="597">Pinch</text>
+    <text class="desc" x="1007" y="598">Zoom in / out on the trackpad</text>
+
+    <rect class="chip" x="839" y="613" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="633">⌘=  /  ⌘−</text>
+    <text class="desc" x="1007" y="634">Zoom in / out (also in the bottom zoom bar)</text>
+
+    <rect class="chip" x="839" y="649" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="669">⌘0</text>
+    <text class="desc" x="1007" y="670">Zoom to fit</text>
+
+    <rect class="chip" x="839" y="685" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="705">Two-finger scroll</text>
+    <text class="desc" x="1007" y="706">Pan around while zoomed in</text>
+
+    <rect class="chip" x="839" y="721" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="741">⌘C</text>
+    <text class="desc" x="1007" y="742">Copy the edited image (closes the editor)</text>
+
+    <rect class="chip" x="839" y="757" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="777">⌘S</text>
+    <text class="desc" x="1007" y="778">Save (closes the editor)</text>
+
+    <rect class="chip" x="839" y="793" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="813">Style bar</text>
+    <text class="desc" x="1007" y="814">Colour · Stroke · Border (White / Black / None) · Fill</text>
+
+    <rect class="chip" x="839" y="829" width="150" height="30" rx="6"/>
+    <text class="key" x="914" y="849">Inspector</text>
+    <text class="desc" x="1007" y="850">Beautify: background, padding, corners, shadow</text>
+  </g>
+
+  <!-- Panel 5: Full-page Chrome setup flow -->
+  <g id="panel-fullpage">
+    <rect class="panel" x="40" y="900" width="1520" height="260" rx="12"/>
+    <circle cx="78" cy="936" r="16" fill="#ccfbf1"/>
+    <circle cx="78" cy="936" r="6" fill="#0d9488"/>
+    <text class="h" x="104" y="943">Full-page screenshot in Chrome (one-time setup, then one shortcut)</text>
+
+    <g id="step-1">
+      <rect x="64" y="968" width="320" height="160" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+      <circle cx="98" cy="1006" r="18" fill="#0d9488"/>
+      <text class="num" x="98" y="1012">1</text>
+      <text class="step" x="126" y="1012">Enable in Chrome</text>
+      <text class="stepline" x="88" y="1054">View › Developer ›</text>
+      <text class="stepline" x="88" y="1080">Allow JavaScript from Apple Events</text>
+      <text class="note" x="88" y="1108">(in every Chrome profile you use)</text>
+    </g>
+
+    <g id="step-2">
+      <rect x="448" y="968" width="320" height="160" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+      <circle cx="482" cy="1006" r="18" fill="#0d9488"/>
+      <text class="num" x="482" y="1012">2</text>
+      <text class="step" x="510" y="1012">Allow Automation</text>
+      <text class="stepline" x="472" y="1054">Click Allow when macOS asks</text>
+      <text class="stepline" x="472" y="1080">“ScreenCapture wants to control</text>
+      <text class="stepline" x="472" y="1106">Google Chrome”</text>
+    </g>
+
+    <g id="step-3">
+      <rect x="832" y="968" width="320" height="160" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+      <circle cx="866" cy="1006" r="18" fill="#0d9488"/>
+      <text class="num" x="866" y="1012">3</text>
+      <text class="step" x="894" y="1012">Capture</text>
+      <text class="stepline" x="856" y="1054">Press ⌃⌥⌘F, or click</text>
+      <text class="stepline" x="856" y="1080">Full Web Page (Chrome)</text>
+      <text class="stepline" x="856" y="1106">in the menu bar panel</text>
+    </g>
+
+    <g id="step-4">
+      <rect x="1216" y="968" width="320" height="160" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5"/>
+      <circle cx="1250" cy="1006" r="18" fill="#0d9488"/>
+      <text class="num" x="1250" y="1012">4</text>
+      <text class="step" x="1278" y="1012">Stitched image</text>
+      <text class="stepline" x="1240" y="1054">The tab is scrolled and stitched;</text>
+      <text class="stepline" x="1240" y="1080">quality: Settings › General ›</text>
+      <text class="stepline" x="1240" y="1106">Full-Page Screenshots</text>
+    </g>
+
+    <line id="edge-1-2" x1="392" y1="1048" x2="440" y2="1048" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-teal)"/>
+    <line id="edge-2-3" x1="776" y1="1048" x2="824" y2="1048" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-teal)"/>
+    <line id="edge-3-4" x1="1160" y1="1048" x2="1208" y2="1048" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-teal)"/>
+  </g>
+</svg>
