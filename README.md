@@ -2,6 +2,18 @@
 
 A menu bar screen recorder and screenshot tool for **macOS 26 (Tahoe) and later**. It's built with ScreenCaptureKit, hardware-encoded AVFoundation, and SwiftUI with Liquid Glass. The UI is modeled on Tap Record.
 
+## User guide
+
+![ScreenCapture quick guide: capture shortcuts, editor tools, editing marks, zoom and export, and full-page Chrome setup](docs/user-guide.png)
+
+The source is [docs/user-guide.svg](docs/user-guide.svg).
+
+## Install guide
+
+![ScreenCapture install guide: install from the DMG, grant permissions, update, troubleshoot and build from source](docs/install-guide.png)
+
+The source is [docs/install-guide.svg](docs/install-guide.svg).
+
 ## Features
 
 - **Record or screenshot** from a compact menu bar panel.
@@ -13,7 +25,7 @@ A menu bar screen recorder and screenshot tool for **macOS 26 (Tahoe) and later*
 - **Screenshots:** PNG, JPEG, or HEIC, with optional copy to the clipboard.
 - **Quick Screenshot:** one shortcut (default `⌃⌥⌘D`, changeable in Settings › General or Shortcuts) instantly captures the screen under the mouse. It copies the image to the clipboard, saves it to `ScreenCapture/images`, plays a shutter sound (optional), and shows a small toast; click the toast to open the editor.
 - **Full-page web screenshots (Chrome):** `⌃⌥⌘F`, the *Full Web Page (Chrome)* button, or the right-click menu scrolls the active tab of the front Chrome window (Chromium, Brave and Edge work too), captures it slice by slice, and stitches the whole page into one image. Fixed and sticky headers appear only once, and the page's scroll position is restored afterwards. One-time setup: in Chrome, turn on **View › Developer › Allow JavaScript from Apple Events**, then allow ScreenCapture to control Chrome when macOS asks. Pages that scroll inside an inner panel instead of the main document (Jira, Gmail and similar web apps) are handled by scrolling and capturing that panel. Very long pages are cut off at 32,000 px.
-- **Screenshot editor (Xnapper-style):** opens automatically after each screenshot (configurable). Tools: select/move (V), text (1 or T), arrow (2 or A), black box (3 or K), shapes (4: rectangle outline by default; press 4 again to switch to ellipse or line; also R, O, L), pencil (P), highlighter (H), pixelate/redact (B), numbered steps (N), and crop (C). Click any mark to select it, then drag it to move or drag its handles to resize (Shift keeps proportions); double-click text to edit it. You can set colour, stroke, border (white by default, or black or none), fill, and text size; hold Shift for squares and 45° lines; and use undo/redo and arrow-key nudging. **Beautify** places the shot on a gradient background with padding, rounded corners, a shadow, and an aspect ratio (Auto, 16:9, 4:3, 1:1). Copy (⌘C), Save (⌘S), and Save As are available. By default ⌘C and ⌘S also close the editor and show a toast (click it to reopen); turn this off in Settings › General.
+- **Screenshot editor (Xnapper-style):** opens automatically after each screenshot (configurable). Tools: select/move (V), text (1 or T), arrow (2 or A), black box (3 or K), shapes (4: rectangle outline by default; press 4 again to switch to ellipse or line; also R, O, L), pencil (P), highlighter (H), pixelate/redact (B), numbered steps (N), and crop (C). Click any mark to select it, then drag it to move or drag its handles to resize (Shift keeps proportions); double-click text to edit it. Zoom with a trackpad pinch, ⌘+ / ⌘− / ⌘0, or the zoom bar at the bottom of the editor; scroll to pan when zoomed in. You can set colour, stroke, border (white by default, or black or none), fill, and text size; hold Shift for squares and 45° lines; and use undo/redo and arrow-key nudging. **Beautify** places the shot on a gradient background with padding, rounded corners, a shadow, and an aspect ratio (Auto, 16:9, 4:3, 1:1). Copy (⌘C), Save (⌘S), and Save As are available. By default ⌘C and ⌘S also close the editor and show a toast (click it to reopen); turn this off in Settings › General.
 - **Auto-apply Beautify:** in Settings › Beautify, choose a default style and apply it to every new screenshot, Quick Screenshots included. The clipboard and saved file get the styled image, and the editor opens with Beautify on, still editable. Style changes made in the editor become the new default. The preview and the exported file are drawn by the same renderer, so they match exactly.
 - **Auto-created folders:** `~/Documents/ScreenCapture/videos` and `~/Documents/ScreenCapture/images`.
 - **After each capture:** a floating card shows a preview with *Open / Finder / Copy*, plus **View Recording History** or **View Screenshot History**, matching the capture you just made.
