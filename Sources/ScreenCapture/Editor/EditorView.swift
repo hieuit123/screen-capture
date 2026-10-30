@@ -13,13 +13,18 @@ struct EditorView: View {
 
     @State private var showInspector = true
     @State private var toast: String?
+    /// nil means "zoom to fit".
+    @State private var zoom: CGFloat?
+    @State private var fitScale: CGFloat = 1
     @FocusState private var canvasFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             StyleBar(doc: doc)
             Divider()
-            EditorCanvas(doc: doc, canvasFocused: $canvasFocused)
+            EditorCanvas(doc: doc, canvasFocused: $canvasFocused, zoom: $zoom, fitScale: $fitScale)
+            Divider()
+            ZoomBar(zoom: $zoom, fitScale: fitScale, maxZoom: EditorZoom.maxZoom(for: doc.layout.canvasSize))
         }
         .frame(minWidth: 760, minHeight: 480)
         .toolbar { toolbarContent }
@@ -301,43 +306,68 @@ private struct StyleBar: View {
 private struct EditorCanvas: View {
     let doc: EditorDocument
     var canvasFocused: FocusState<Bool>.Binding
+    @Binding var zoom: CGFloat?
+    @Binding var fitScale: CGFloat
+
+    @State private var pinchStart: CGFloat?
 
     var body: some View {
         GeometryReader { geo in
             let layout = doc.layout
             let inset: CGFloat = 36
-            let fit = min((geo.size.width - inset * 2) / layout.canvasSize.width,
-                          (geo.size.height - inset * 2) / layout.canvasSize.height)
-            let scale = max(0.01, min(fit, 1))
+            let fit = max(0.01, min((geo.size.width - inset * 2) / layout.canvasSize.width,
+                                    (geo.size.height - inset * 2) / layout.canvasSize.height, 1))
+            let scale = zoom ?? fit
             let canvasSize = CGSize(width: layout.canvasSize.width * scale, height: layout.canvasSize.height * scale)
             let imageRect = CGRect(x: layout.imageRect.minX * scale, y: layout.imageRect.minY * scale,
                                    width: layout.imageRect.width * scale, height: layout.imageRect.height * scale)
             let radius = layout.cornerRadius * scale
             let beautify = doc.beautify
 
-            ZStack(alignment: .topLeading) {
-                if beautify.enabled {
-                    LinearGradient(colors: beautify.preset.colors.map { Color(nsColor: $0) },
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                }
-                Image(decorative: doc.image, scale: 1)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: imageRect.width, height: imageRect.height)
-                    .clipShape(.rect(cornerRadius: radius))
-                    .shadow(color: .black.opacity(layout.shadowRadius > 0 ? 0.4 : 0),
-                            radius: layout.shadowRadius * scale / 2, y: layout.shadowRadius * scale * 0.4)
-                    .position(x: imageRect.midX, y: imageRect.midY)
+            ScrollView([.horizontal, .vertical]) {
+                ZStack(alignment: .topLeading) {
+                    if beautify.enabled {
+                        LinearGradient(colors: beautify.preset.colors.map { Color(nsColor: $0) },
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    }
+                    Image(decorative: doc.image, scale: 1)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: imageRect.width, height: imageRect.height)
+                        .clipShape(.rect(cornerRadius: radius))
+                        .shadow(color: .black.opacity(layout.shadowRadius > 0 ? 0.4 : 0),
+                                radius: layout.shadowRadius * scale / 2, y: layout.shadowRadius * scale * 0.4)
+                        .position(x: imageRect.midX, y: imageRect.midY)
 
-                AnnotationLayer(doc: doc, scale: scale, canvasFocused: canvasFocused)
-                    .frame(width: imageRect.width, height: imageRect.height)
-                    .clipShape(.rect(cornerRadius: radius))
-                    .position(x: imageRect.midX, y: imageRect.midY)
+                    AnnotationLayer(doc: doc, scale: scale, canvasFocused: canvasFocused)
+                        .frame(width: imageRect.width, height: imageRect.height)
+                        .clipShape(.rect(cornerRadius: radius))
+                        .position(x: imageRect.midX, y: imageRect.midY)
+                }
+                .frame(width: canvasSize.width, height: canvasSize.height)
+                .clipped()
+                .shadow(color: .black.opacity(beautify.enabled ? 0.15 : 0.25), radius: 12, y: 4)
+                .padding(inset)
+                .frame(minWidth: geo.size.width, minHeight: geo.size.height)
             }
-            .frame(width: canvasSize.width, height: canvasSize.height)
-            .clipped()
-            .shadow(color: .black.opacity(beautify.enabled ? 0.15 : 0.25), radius: 12, y: 4)
-            .frame(width: geo.size.width, height: geo.size.height)
+            .defaultScrollAnchor(.center, for: .sizeChanges)
+            .defaultScrollAnchor(.center, for: .initialOffset)
+            .scrollDisabled(zoom == nil)
+            .scrollIndicators(zoom == nil ? .hidden : .automatic)
+            .onChange(of: fit, initial: true) { fitScale = fit }
+            // Trackpad pinch.
+            .simultaneousGesture(
+                MagnifyGesture()
+                    .onChanged { value in
+                        let start = pinchStart ?? scale
+                        if pinchStart == nil { pinchStart = scale }
+                        zoom = EditorZoom.clamp(start * value.magnification, max: EditorZoom.maxZoom(for: layout.canvasSize))
+                    }
+                    .onEnded { _ in
+                        pinchStart = nil
+                        if let zoom, abs(zoom - fit) < 0.02 { self.zoom = nil }
+                    }
+            )
         }
         .background(Color(nsColor: .underPageBackgroundColor))
         .focusable()
@@ -546,6 +576,72 @@ private struct AnnotationLayer: View {
     private func finishText() {
         doc.commitTextEditing()
         canvasFocused.wrappedValue = true
+    }
+}
+
+// MARK: - Zoom
+
+enum EditorZoom {
+    static let steps: [CGFloat] = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4]
+    static let minZoom: CGFloat = 0.05
+
+    /// Keeps the rendered canvas within GPU texture limits on very large images (e.g. full-page captures).
+    static func maxZoom(for canvasSize: CGSize) -> CGFloat {
+        max(minZoom, min(4, 12_000 / max(canvasSize.width, canvasSize.height, 1)))
+    }
+
+    static func clamp(_ value: CGFloat, max upper: CGFloat) -> CGFloat {
+        min(max(value, minZoom), upper)
+    }
+}
+
+private struct ZoomBar: View {
+    @Binding var zoom: CGFloat?
+    let fitScale: CGFloat
+    let maxZoom: CGFloat
+
+    var body: some View {
+        let current = zoom ?? fitScale
+        HStack(spacing: 6) {
+            Text("Pinch to zoom · scroll to pan")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Zoom Out", systemImage: "minus.magnifyingglass") {
+                zoom = EditorZoom.steps.last { $0 < current - 0.001 } ?? EditorZoom.minZoom
+            }
+            .keyboardShortcut("-", modifiers: .command)
+            .disabled(current <= EditorZoom.minZoom + 0.001)
+            .help("Zoom Out (⌘−)")
+
+            Menu("\(Int((current * 100).rounded()))%") {
+                Button("Zoom to Fit") { zoom = nil }
+                Divider()
+                ForEach(EditorZoom.steps.filter { $0 <= maxZoom }, id: \.self) { step in
+                    Button("\(Int((step * 100).rounded()))%") { zoom = step }
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            Button("Zoom In", systemImage: "plus.magnifyingglass") {
+                zoom = min(EditorZoom.steps.first { $0 > current + 0.001 } ?? maxZoom, maxZoom)
+            }
+            .keyboardShortcut("=", modifiers: .command)
+            .disabled(current >= maxZoom - 0.001)
+            .help("Zoom In (⌘+)")
+
+            Button("Zoom to Fit", systemImage: "arrow.down.right.and.arrow.up.left") { zoom = nil }
+                .keyboardShortcut("0", modifiers: .command)
+                .disabled(zoom == nil)
+                .help("Zoom to Fit (⌘0)")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 5)
+        .background(.bar)
     }
 }
 
