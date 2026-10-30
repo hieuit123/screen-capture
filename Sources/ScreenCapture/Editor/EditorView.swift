@@ -147,6 +147,15 @@ private struct ToolPicker: View {
                     Image(systemName: tool.symbol)
                         .font(.system(size: 14, weight: .medium))
                         .frame(width: 30, height: 26)
+                        .overlay(alignment: .bottomTrailing) {
+                            if let number = tool.numberKey {
+                                Text(String(number))
+                                    .font(.system(size: 8, weight: .bold).monospacedDigit())
+                                    .opacity(0.75)
+                                    .padding(.trailing, 2)
+                                    .padding(.bottom, 1)
+                            }
+                        }
                         .foregroundStyle(doc.tool == tool ? Color.white : Color.primary)
                         .background {
                             if doc.tool == tool {
@@ -156,7 +165,7 @@ private struct ToolPicker: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help("\(tool.title) (\(String(tool.key).uppercased()))")
+                .help("\(tool.title) (\(tool.numberKey.map { "\($0) or " } ?? "")\(String(tool.key).uppercased()))")
             }
         }
         .padding(.horizontal, 4)
@@ -170,10 +179,26 @@ private struct StyleBar: View {
                                       .systemPurple, .systemPink, .black, .white]
 
     var body: some View {
+        // In Select mode, show the options of the selected mark.
+        let styleTool = doc.tool == .select ? doc.selectedAnnotation?.tool ?? .select : doc.tool
+
         HStack(spacing: 14) {
             Label(doc.tool.title, systemImage: doc.tool.symbol)
                 .font(.callout.weight(.semibold))
                 .frame(minWidth: 120, alignment: .leading)
+
+            if EditorTool.shapes.contains(doc.tool) {
+                Picker("Shape", selection: Binding(get: { doc.tool }, set: { doc.tool = $0 })) {
+                    ForEach(EditorTool.shapes) { shape in
+                        Image(systemName: shape.symbol).help(shape.title).tag(shape)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 110)
+                .help("Press 4 to switch shapes")
+                Divider().frame(height: 20)
+            }
 
             if doc.tool.usesColor || doc.selectedAnnotation != nil {
                 HStack(spacing: 6) {
@@ -195,7 +220,7 @@ private struct StyleBar: View {
                 }
             }
 
-            if doc.tool.usesStroke {
+            if styleTool.usesStroke {
                 Divider().frame(height: 20)
                 Picker("Stroke", selection: Binding(get: { doc.strokeSize }, set: { doc.setStrokeSize($0) })) {
                     ForEach(StrokeSize.allCases) { size in
@@ -210,7 +235,16 @@ private struct StyleBar: View {
                 .frame(width: 120)
             }
 
-            if doc.tool.usesTextSize {
+            if styleTool.usesBorder {
+                Picker("Border", selection: Binding(get: { doc.borderStyle }, set: { doc.setBorderStyle($0) })) {
+                    ForEach(BorderStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .fixedSize()
+                .help("Outline around the shape")
+            }
+
+            if styleTool.usesTextSize {
                 Divider().frame(height: 20)
                 Picker("Size", selection: Binding(get: { doc.textSize }, set: { doc.setTextSize($0) })) {
                     ForEach(TextSize.allCases) { Text($0.title).tag($0) }
@@ -220,9 +254,9 @@ private struct StyleBar: View {
                 .frame(width: 100)
             }
 
-            if doc.tool.usesFill {
+            if styleTool.usesFill {
                 Divider().frame(height: 20)
-                Toggle(doc.tool == .text ? "Background" : "Fill", isOn: Binding(get: { doc.filled }, set: { doc.setFilled($0) }))
+                Toggle(styleTool == .text ? "Background" : "Fill", isOn: Binding(get: { doc.filled }, set: { doc.setFilled($0) }))
                     .toggleStyle(.checkbox)
             }
 
@@ -239,9 +273,14 @@ private struct StyleBar: View {
                 }
             }
 
-            if doc.tool == .select, doc.selectedAnnotation != nil {
+            if doc.selectedAnnotation != nil, doc.tool != .crop {
                 Divider().frame(height: 20)
                 Button("Delete", systemImage: "trash", role: .destructive) { doc.deleteSelection() }
+            } else if doc.tool == .text {
+                Divider().frame(height: 20)
+                Text("Click to add text · double-click text to edit it")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)
@@ -328,8 +367,15 @@ private struct EditorCanvas: View {
             doc.nudgeSelection(dx: dx, dy: dy)
             return .handled
         default:
-            guard press.modifiers.subtracting(.shift).isEmpty, let char = press.characters.lowercased().first,
-                  let tool = EditorTool.allCases.first(where: { $0.key == char }) else { return .ignored }
+            guard press.modifiers.subtracting(.shift).isEmpty, let char = press.characters.lowercased().first else {
+                return .ignored
+            }
+            if char == "4" {
+                doc.selectShapeTool()
+                return .handled
+            }
+            guard let tool = EditorTool.allCases.first(where: { $0.numberKey == char })
+                    ?? EditorTool.allCases.first(where: { $0.key == char }) else { return .ignored }
             doc.tool = tool
             return .handled
         }
@@ -342,6 +388,7 @@ private struct AnnotationLayer: View {
     var canvasFocused: FocusState<Bool>.Binding
 
     @State private var isDragging = false
+    @State private var pointer: PointerStyle = .default
     @FocusState private var textFocused: Bool
 
     var body: some View {
@@ -349,7 +396,7 @@ private struct AnnotationLayer: View {
         let annotations = doc.visibleAnnotations
         let pixelated = doc.pixelated
         let imageSize = doc.imageSize
-        let selectionBounds = doc.tool == .select ? doc.selectedAnnotation?.bounds : nil
+        let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
         let scale = scale
 
         Canvas { context, _ in
@@ -357,29 +404,55 @@ private struct AnnotationLayer: View {
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
             }
-            if let selectionBounds {
-                let rect = selectionBounds.insetBy(dx: -6 / scale, dy: -6 / scale)
-                context.stroke(Path(roundedRect: rect, cornerRadius: 4 / scale), with: .color(.accentColor),
-                               style: StrokeStyle(lineWidth: 1.5 / scale, dash: [5 / scale, 3 / scale]))
+            if let selected {
+                let handles = selected.handles
+                if !handles.contains(.start) {
+                    let rect = selected.frame.insetBy(dx: -1 / scale, dy: -1 / scale)
+                    context.stroke(Path(rect), with: .color(.accentColor),
+                                   style: StrokeStyle(lineWidth: 1.5 / scale, dash: [5 / scale, 3 / scale]))
+                }
+                let r = 4.5 / scale
+                for handle in handles {
+                    let p = selected.point(of: handle)
+                    let dot = Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+                    context.fill(dot, with: .color(.white))
+                    context.stroke(dot, with: .color(.accentColor), lineWidth: 1.5 / scale)
+                }
             }
         }
         .contentShape(.rect)
         .gesture(dragGesture)
+        // NSCursor.set() gets reset by AppKit cursor rects on every mouse move, so let SwiftUI own the cursor.
+        .pointerStyle(pointer)
         .onContinuousHover { phase in
-            switch phase {
-            case .active: cursor.set()
-            case .ended: NSCursor.arrow.set()
-            }
+            guard !isDragging, case .active(let location) = phase else { return }
+            pointer = pointerStyle(at: imagePoint(location))
         }
+        .onChange(of: scale, initial: true) { doc.viewScale = scale }
         .overlay(alignment: .topLeading) { cropOverlay }
         .overlay(alignment: .topLeading) { textEditor }
     }
 
-    private var cursor: NSCursor {
+    private func pointerStyle(at point: CGPoint) -> PointerStyle {
+        if doc.tool != .crop {
+            switch doc.handle(at: point) {
+            case .topLeft: return .frameResize(position: .topLeading)
+            case .top: return .frameResize(position: .top)
+            case .topRight: return .frameResize(position: .topTrailing)
+            case .right: return .frameResize(position: .trailing)
+            case .bottomRight: return .frameResize(position: .bottomTrailing)
+            case .bottom: return .frameResize(position: .bottom)
+            case .bottomLeft: return .frameResize(position: .bottomLeading)
+            case .left: return .frameResize(position: .leading)
+            case .start, .end: return .rectSelection
+            case nil: break
+            }
+            if doc.annotation(at: point) != nil { return .grabIdle }
+        }
         switch doc.tool {
-        case .select: .arrow
-        case .text: .iBeam
-        default: .crosshair
+        case .select: return .default
+        case .text: return .horizontalText
+        default: return .rectSelection
         }
     }
 
@@ -390,12 +463,14 @@ private struct AnnotationLayer: View {
                 if !isDragging {
                     isDragging = true
                     doc.begin(at: imagePoint(value.startLocation))
+                    if doc.isMovingSelection { pointer = .grabActive }
                 }
                 doc.update(to: imagePoint(value.location), constrained: constrained)
             }
             .onEnded { value in
                 isDragging = false
                 doc.end(at: imagePoint(value.location))
+                pointer = pointerStyle(at: imagePoint(value.location))
                 if doc.textEditing == nil { canvasFocused.wrappedValue = true }
             }
     }

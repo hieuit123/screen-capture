@@ -55,6 +55,17 @@ private struct GeneralSettingsView: View {
                 }
                 Toggle("Show the mouse cursor", isOn: $settings.showsCursor)
             }
+            Section {
+                Picker("Image quality", selection: $settings.fullPageQuality) {
+                    ForEach(FullPageQuality.allCases) { Text($0.title).tag($0) }
+                }
+            } header: {
+                Text("Full-Page Screenshots (Chrome)")
+            } footer: {
+                Text("Lower quality makes smaller files and lets very long pages fit (up to 32,000 px tall). 100% keeps full Retina sharpness.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Storage") {
                 LabeledContent("Save location") {
                     HStack {

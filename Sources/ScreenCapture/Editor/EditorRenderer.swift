@@ -86,34 +86,27 @@ enum EditorRenderer {
         switch a.shape {
         case .rectangle(let r):
             let radius = min(a.lineWidth * 1.5, min(r.width, r.height) / 2)
-            ctx.addPath(CGPath(roundedRect: r, cornerWidth: radius, cornerHeight: radius, transform: nil))
-            if a.filled {
-                ctx.setFillColor(a.color.withAlphaComponent(0.35).cgColor)
-                ctx.drawPath(using: .fillStroke)
-            } else {
-                ctx.strokePath()
-            }
+            let path = CGPath(roundedRect: r, cornerWidth: radius, cornerHeight: radius, transform: nil)
+            if a.filled { fill(path, a, in: ctx) }
+            stroke(path, a, in: ctx)
 
         case .ellipse(let r):
-            ctx.addEllipse(in: r)
-            if a.filled {
-                ctx.setFillColor(a.color.withAlphaComponent(0.35).cgColor)
-                ctx.drawPath(using: .fillStroke)
-            } else {
-                ctx.strokePath()
-            }
+            let path = CGPath(ellipseIn: r, transform: nil)
+            if a.filled { fill(path, a, in: ctx) }
+            stroke(path, a, in: ctx)
 
         case .line(let p1, let p2):
-            ctx.move(to: p1)
-            ctx.addLine(to: p2)
-            ctx.strokePath()
+            let path = CGMutablePath()
+            path.move(to: p1)
+            path.addLine(to: p2)
+            stroke(path, a, in: ctx)
 
         case .arrow(let p1, let p2):
-            drawArrow(from: p1, to: p2, width: a.lineWidth, in: ctx)
+            drawArrow(from: p1, to: p2, width: a.lineWidth, color: color, border: a.borderColor?.cgColor,
+                      borderWidth: a.borderWidth, in: ctx)
 
         case .pencil(let points):
-            ctx.addPath(smoothPath(points))
-            ctx.strokePath()
+            stroke(smoothPath(points), a, in: ctx)
 
         case .highlighter(let points):
             ctx.setStrokeColor(a.color.withAlphaComponent(0.4).cgColor)
@@ -133,6 +126,9 @@ enum EditorRenderer {
                 ctx.setFillColor(NSColor.gray.cgColor)
                 ctx.fill(r)
             }
+
+        case .blackout(let r):
+            ctx.fill(r)
 
         case .counter(let center, let number):
             let radius = counterRadius(fontSize: a.fontSize)
@@ -213,7 +209,28 @@ enum EditorRenderer {
 
     // MARK: Paths
 
-    private static func drawArrow(from start: CGPoint, to end: CGPoint, width: CGFloat, in ctx: CGContext) {
+    private static func fill(_ path: CGPath, _ a: Annotation, in ctx: CGContext) {
+        ctx.setFillColor(a.color.withAlphaComponent(0.35).cgColor)
+        ctx.addPath(path)
+        ctx.fillPath()
+    }
+
+    /// Strokes the path in the annotation colour, on top of a wider border stroke when it has one.
+    private static func stroke(_ path: CGPath, _ a: Annotation, in ctx: CGContext) {
+        if let border = a.borderColor {
+            ctx.setStrokeColor(border.cgColor)
+            ctx.setLineWidth(a.lineWidth + a.borderWidth * 2)
+            ctx.addPath(path)
+            ctx.strokePath()
+        }
+        ctx.setStrokeColor(a.color.cgColor)
+        ctx.setLineWidth(a.lineWidth)
+        ctx.addPath(path)
+        ctx.strokePath()
+    }
+
+    private static func drawArrow(from start: CGPoint, to end: CGPoint, width: CGFloat, color: CGColor,
+                                  border: CGColor?, borderWidth: CGFloat, in ctx: CGContext) {
         let dx = end.x - start.x, dy = end.y - start.y
         let length = hypot(dx, dy)
         guard length > 0.5 else { return }
@@ -222,16 +239,28 @@ enum EditorRenderer {
         let headAngle = CGFloat.pi / 7
 
         let shaftEnd = CGPoint(x: end.x - cos(angle) * headLength * 0.7, y: end.y - sin(angle) * headLength * 0.7)
-        ctx.move(to: start)
-        ctx.addLine(to: shaftEnd)
-        ctx.strokePath()
+        let shaft = CGMutablePath()
+        shaft.move(to: start)
+        shaft.addLine(to: shaftEnd)
 
-        ctx.move(to: end)
-        ctx.addLine(to: CGPoint(x: end.x - cos(angle - headAngle) * headLength, y: end.y - sin(angle - headAngle) * headLength))
-        ctx.addLine(to: CGPoint(x: end.x - cos(angle + headAngle) * headLength, y: end.y - sin(angle + headAngle) * headLength))
-        ctx.closePath()
-        ctx.setLineWidth(width * 0.5)
-        ctx.drawPath(using: .fillStroke)
+        let head = CGMutablePath()
+        head.move(to: end)
+        head.addLine(to: CGPoint(x: end.x - cos(angle - headAngle) * headLength, y: end.y - sin(angle - headAngle) * headLength))
+        head.addLine(to: CGPoint(x: end.x - cos(angle + headAngle) * headLength, y: end.y - sin(angle + headAngle) * headLength))
+        head.closeSubpath()
+
+        func pass(_ color: CGColor, extra: CGFloat) {
+            ctx.setStrokeColor(color)
+            ctx.setFillColor(color)
+            ctx.setLineWidth(width + extra)
+            ctx.addPath(shaft)
+            ctx.strokePath()
+            ctx.setLineWidth(width * 0.5 + extra)
+            ctx.addPath(head)
+            ctx.drawPath(using: .fillStroke)
+        }
+        if let border { pass(border, extra: borderWidth * 2) }
+        pass(color, extra: 0)
     }
 
     private static func smoothPath(_ points: [CGPoint]) -> CGPath {
