@@ -58,7 +58,7 @@ struct Shortcut: Codable, Equatable, Hashable, Sendable {
 }
 
 enum ShortcutAction: String, CaseIterable, Identifiable, Sendable {
-    case screenshot, quickScreenshot, areaScreenshot, toggleRecording
+    case screenshot, quickScreenshot, areaScreenshot, fullPageScreenshot, toggleRecording
 
     var id: String { rawValue }
 
@@ -67,6 +67,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable, Sendable {
         case .screenshot: "Take Screenshot"
         case .quickScreenshot: "Quick Screenshot"
         case .areaScreenshot: "Capture Area"
+        case .fullPageScreenshot: "Full-Page Screenshot (Chrome)"
         case .toggleRecording: "Start / Stop Recording"
         }
     }
@@ -76,6 +77,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable, Sendable {
         case .screenshot: "Uses the source selected in the menu (screen, window, app or area)."
         case .quickScreenshot: "Instantly captures the screen under the mouse, copies it and saves it. No editor."
         case .areaScreenshot: "Always lets you drag out an area, then opens the editor."
+        case .fullPageScreenshot: "Scrolls the active Chrome tab and captures the whole web page as one image."
         case .toggleRecording: "Starts recording with the current options, or stops it."
         }
     }
@@ -86,6 +88,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable, Sendable {
         case .screenshot: return Shortcut(keyCode: kVK_ANSI_S, modifiers: mods, key: "S")
         case .quickScreenshot: return Shortcut(keyCode: kVK_ANSI_D, modifiers: mods, key: "D")
         case .areaScreenshot: return Shortcut(keyCode: kVK_ANSI_A, modifiers: mods, key: "A")
+        case .fullPageScreenshot: return Shortcut(keyCode: kVK_ANSI_F, modifiers: mods, key: "F")
         case .toggleRecording: return Shortcut(keyCode: kVK_ANSI_R, modifiers: mods, key: "R")
         }
     }

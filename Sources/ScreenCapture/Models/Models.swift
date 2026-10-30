@@ -106,6 +106,29 @@ enum ImageFormat: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Output resolution for full-page web screenshots, which can get very large.
+enum FullPageQuality: String, CaseIterable, Identifiable, Sendable {
+    case best, high, medium, low
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .best: "Best (100%)"
+        case .high: "High (75%)"
+        case .medium: "Medium (50%)"
+        case .low: "Low (35%)"
+        }
+    }
+    var scale: CGFloat {
+        switch self {
+        case .best: 1
+        case .high: 0.75
+        case .medium: 0.5
+        case .low: 0.35
+        }
+    }
+}
+
 struct CaptureItem: Identifiable, Hashable, Sendable {
     let url: URL
     let kind: CaptureKind

@@ -147,6 +147,17 @@ final class AppModel {
         Task { await captureScreenshot(source: .area) }
     }
 
+    /// Scrolls the active Chrome tab and saves the whole web page as one screenshot.
+    func captureFullPage() {
+        guard phase == .idle || phase.isRecording else { return }
+        Task {
+            await saveScreenshot {
+                ui?.dismissPopover()
+                return try await FullPageCapture.capture(scale: settings.fullPageQuality.scale)
+            }
+        }
+    }
+
     private func resolveTarget(source: CaptureSource, mode: AreaSelectionMode) async throws -> CaptureTarget {
         ui?.dismissPopover()
         var area: AreaSelection?
@@ -215,13 +226,19 @@ final class AppModel {
     }
 
     private func captureScreenshot(source: CaptureSource) async {
+        await saveScreenshot {
+            let target = try await resolveTarget(source: source, mode: .screenshot)
+            return try await ScreenshotService.capture(target: target, showsCursor: settings.showsCursor)
+        }
+    }
+
+    private func saveScreenshot(_ capture: () async throws -> CGImage) async {
         let wasIdle = phase == .idle
         if wasIdle { phase = .preparing }
         defer { if wasIdle { phase = .idle } }
 
         do {
-            let target = try await resolveTarget(source: source, mode: .screenshot)
-            let image = try await ScreenshotService.capture(target: target, showsCursor: settings.showsCursor)
+            let image = try await capture()
             let format = settings.imageFormat
             let url = try StorageManager.newFileURL(kind: .screenshot, fileExtension: format.fileExtension)
 

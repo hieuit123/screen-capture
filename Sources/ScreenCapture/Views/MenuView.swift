@@ -35,6 +35,9 @@ struct MenuView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 actionButton
+                if settings.kind == .screenshot {
+                    fullPageButton
+                }
             }
 
             RecentStrip(kind: settings.kind, items: Array(model.history.items(for: settings.kind).prefix(4)),
@@ -132,6 +135,26 @@ struct MenuView: View {
         .controlSize(.large)
         .disabled(model.phase.isBusy)
         .keyboardShortcut(.defaultAction)
+    }
+
+    private var fullPageButton: some View {
+        Button {
+            model.captureFullPage()
+        } label: {
+            HStack {
+                Image(systemName: "doc.richtext")
+                Text("Full Web Page (Chrome)")
+                Spacer()
+                Text(model.settings.shortcuts[.fullPageScreenshot]?.displayString ?? "")
+                    .font(.caption.monospaced())
+                    .opacity(0.75)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.glass)
+        .disabled(model.phase.isBusy)
+        .help("Scrolls the active Chrome tab and captures the whole page")
     }
 
     private var footer: some View {

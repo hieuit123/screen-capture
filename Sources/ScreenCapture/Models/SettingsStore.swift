@@ -22,6 +22,7 @@ final class SettingsStore {
     var microphoneID: String { didSet { defaults.set(microphoneID, forKey: Keys.microphoneID) } }
 
     var imageFormat: ImageFormat { didSet { defaults.set(imageFormat.rawValue, forKey: Keys.imageFormat) } }
+    var fullPageQuality: FullPageQuality { didSet { defaults.set(fullPageQuality.rawValue, forKey: Keys.fullPageQuality) } }
     var copyScreenshotToClipboard: Bool { didSet { defaults.set(copyScreenshotToClipboard, forKey: Keys.copyToClipboard) } }
     var showPostCapturePanel: Bool { didSet { defaults.set(showPostCapturePanel, forKey: Keys.postCapture) } }
     var openEditorAfterScreenshot: Bool { didSet { defaults.set(openEditorAfterScreenshot, forKey: Keys.openEditor) } }
@@ -77,6 +78,7 @@ final class SettingsStore {
         captureMicrophone = d.object(forKey: Keys.microphone) as? Bool ?? false
         microphoneID = d.string(forKey: Keys.microphoneID) ?? ""
         imageFormat = ImageFormat(rawValue: d.string(forKey: Keys.imageFormat) ?? "") ?? .png
+        fullPageQuality = FullPageQuality(rawValue: d.string(forKey: Keys.fullPageQuality) ?? "") ?? .best
         copyScreenshotToClipboard = d.object(forKey: Keys.copyToClipboard) as? Bool ?? false
         showPostCapturePanel = d.object(forKey: Keys.postCapture) as? Bool ?? true
         openEditorAfterScreenshot = d.object(forKey: Keys.openEditor) as? Bool ?? true
@@ -117,6 +119,7 @@ final class SettingsStore {
         static let microphone = "captureMicrophone"
         static let microphoneID = "microphoneID"
         static let imageFormat = "imageFormat"
+        static let fullPageQuality = "fullPageQuality"
         static let copyToClipboard = "copyScreenshotToClipboard"
         static let postCapture = "showPostCapturePanel"
         static let lastAction = "lastActionKind"

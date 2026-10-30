@@ -95,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         menu.addItem(item("Take Screenshot", shortcut: .screenshot, action: #selector(menuScreenshot)))
         menu.addItem(item("Quick Screenshot", shortcut: .quickScreenshot, action: #selector(menuQuickScreenshot)))
         menu.addItem(item("Capture Area", shortcut: .areaScreenshot, action: #selector(menuCaptureArea)))
+        menu.addItem(item("Full-Page Screenshot (Chrome)", shortcut: .fullPageScreenshot, action: #selector(menuFullPage)))
         menu.addItem(.separator())
         menu.addItem(item("Recording History…", action: #selector(menuRecordingHistory)))
         menu.addItem(item("Screenshot History…", action: #selector(menuScreenshotHistory)))
@@ -125,6 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     @objc private func menuToggleRecording() { model.toggleRecording() }
     @objc private func menuScreenshot() { model.takeScreenshot() }
     @objc private func menuCaptureArea() { model.captureArea() }
+    @objc private func menuFullPage() { model.captureFullPage() }
     @objc private func menuQuickScreenshot() { model.quickScreenshot() }
     @objc private func menuSettings() { openSettings() }
     @objc func showSettings(_ sender: Any?) { openSettings() }
@@ -175,6 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             case .screenshot: model.takeScreenshot()
             case .quickScreenshot: model.quickScreenshot()
             case .areaScreenshot: model.captureArea()
+            case .fullPageScreenshot: model.captureFullPage()
             case .toggleRecording: model.toggleRecording()
             }
         }
@@ -303,7 +306,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             alert.addButton(withTitle: "Open System Settings")
         }
         if alert.runModal() == .alertSecondButtonReturn {
-            let pane = message.contains("Microphone") ? "Privacy_Microphone" : "Privacy_ScreenCapture"
+            let pane = message.contains("Microphone") ? "Privacy_Microphone"
+                : message.contains("Automation") ? "Privacy_Automation" : "Privacy_ScreenCapture"
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)")!)
         }
     }
