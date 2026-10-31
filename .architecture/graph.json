@@ -1,0 +1,915 @@
+{
+ "root": "Sources/ScreenCapture",
+ "generatedBy": ".architecture/gen_graph.py",
+ "nodes": [
+  {
+   "id": "App/AppDelegate.swift",
+   "layer": "App",
+   "loc": 359,
+   "types": [
+    "AppDelegate",
+    "MainMenu"
+   ],
+   "extends": [
+    "NSMenu"
+   ]
+  },
+  {
+   "id": "App/AppModel.swift",
+   "layer": "App",
+   "loc": 272,
+   "types": [
+    "AppUI",
+    "AppModel"
+   ],
+   "extends": []
+  },
+  {
+   "id": "App/WindowControllers.swift",
+   "layer": "App",
+   "loc": 402,
+   "types": [
+    "HistoryWindowController",
+    "EditorWindowController",
+    "SettingsWindowController",
+    "FloatingPanelStack",
+    "QuickCaptureToastController",
+    "PostCapturePanelController"
+   ],
+   "extends": [
+    "NSApplication"
+   ]
+  },
+  {
+   "id": "Editor/EditorDocument.swift",
+   "layer": "Editor",
+   "loc": 1093,
+   "types": [
+    "EditorTool",
+    "StrokeSize",
+    "BorderStyle",
+    "TextSize",
+    "AnnotationShape",
+    "EditHandle",
+    "Annotation",
+    "GradientPreset",
+    "AspectPreset",
+    "BackgroundKind",
+    "RGBColor",
+    "GradientDirection",
+    "CustomGradient",
+    "ResolvedBackground",
+    "BeautifySettings",
+    "CanvasLayout",
+    "EditorDocument"
+   ],
+   "extends": [
+    "ImageFormat",
+    "NSColor"
+   ]
+  },
+  {
+   "id": "Editor/EditorRenderer.swift",
+   "layer": "Editor",
+   "loc": 310,
+   "types": [
+    "EditorRenderer"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Editor/EditorView.swift",
+   "layer": "Editor",
+   "loc": 858,
+   "types": [
+    "EditorFinishAction",
+    "EditorView",
+    "EditorZoom",
+    "BeautifyStyleControls",
+    "BeautifyBackgroundView"
+   ],
+   "extends": [
+    "NSColor"
+   ]
+  },
+  {
+   "id": "Models/Models.swift",
+   "layer": "Models",
+   "loc": 156,
+   "types": [
+    "CaptureKind",
+    "CaptureSource",
+    "FrameRate",
+    "VideoQuality",
+    "VideoCodec",
+    "VideoContainer",
+    "ImageFormat",
+    "FullPageQuality",
+    "CaptureItem",
+    "AreaSelection"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Models/SettingsStore.swift",
+   "layer": "Models",
+   "loc": 134,
+   "types": [
+    "SettingsStore"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Models/Shortcut.swift",
+   "layer": "Models",
+   "loc": 95,
+   "types": [
+    "Shortcut",
+    "ShortcutAction"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/AreaSelector.swift",
+   "layer": "Services",
+   "loc": 470,
+   "types": [
+    "AreaSelectionMode",
+    "AreaSelector",
+    "RecordingFrameOverlay"
+   ],
+   "extends": [
+    "CGPoint"
+   ]
+  },
+  {
+   "id": "Services/BackgroundLibrary.swift",
+   "layer": "Services",
+   "loc": 64,
+   "types": [
+    "BackgroundLibrary"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/CaptureTargetResolver.swift",
+   "layer": "Services",
+   "loc": 105,
+   "types": [
+    "CaptureTarget",
+    "CaptureError",
+    "CaptureTargetResolver"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/FullPageCapture.swift",
+   "layer": "Services",
+   "loc": 265,
+   "types": [
+    "FullPageError",
+    "FullPageCapture"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/HistoryStore.swift",
+   "layer": "Services",
+   "loc": 78,
+   "types": [
+    "HistoryStore"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/HotKeyManager.swift",
+   "layer": "Services",
+   "loc": 82,
+   "types": [
+    "HotKeyManager"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/ScreenRecorder.swift",
+   "layer": "Services",
+   "loc": 307,
+   "types": [
+    "RecordingOptions",
+    "RecorderError",
+    "ScreenRecorder"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/ScreenshotService.swift",
+   "layer": "Services",
+   "loc": 38,
+   "types": [
+    "ScreenshotService"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/ShareableContentStore.swift",
+   "layer": "Services",
+   "loc": 108,
+   "types": [
+    "DisplayOption",
+    "WindowOption",
+    "AppOption",
+    "MicrophoneOption",
+    "ShareableContentStore"
+   ],
+   "extends": [
+    "NSScreen"
+   ]
+  },
+  {
+   "id": "Services/StorageManager.swift",
+   "layer": "Services",
+   "loc": 45,
+   "types": [
+    "StorageManager"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Services/ThumbnailCache.swift",
+   "layer": "Services",
+   "loc": 54,
+   "types": [
+    "ThumbnailCache"
+   ],
+   "extends": [
+    "Double"
+   ]
+  },
+  {
+   "id": "Views/HistoryView.swift",
+   "layer": "Views",
+   "loc": 313,
+   "types": [
+    "HistoryViewState",
+    "HistoryView"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Views/MenuView.swift",
+   "layer": "Views",
+   "loc": 515,
+   "types": [
+    "MenuView"
+   ],
+   "extends": [
+    "View"
+   ]
+  },
+  {
+   "id": "Views/PostCaptureView.swift",
+   "layer": "Views",
+   "loc": 115,
+   "types": [
+    "PostCaptureView",
+    "QuickCaptureToastView"
+   ],
+   "extends": []
+  },
+  {
+   "id": "Views/SettingsView.swift",
+   "layer": "Views",
+   "loc": 273,
+   "types": [
+    "SettingsView",
+    "BeautifySettingsView",
+    "ShortcutRecorder"
+   ],
+   "extends": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "id": "Views/SharedViews.swift",
+   "layer": "Views",
+   "loc": 65,
+   "types": [
+    "ThumbnailView",
+    "DurationBadge",
+    "ElapsedTimeText"
+   ],
+   "extends": []
+  },
+  {
+   "id": "main.swift",
+   "layer": "Entry",
+   "loc": 11,
+   "types": [],
+   "extends": []
+  }
+ ],
+ "edges": [
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "App/AppModel.swift",
+   "via": [
+    "AppModel",
+    "AppUI"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "App/WindowControllers.swift",
+   "via": [
+    "EditorWindowController",
+    "HistoryWindowController",
+    "PostCapturePanelController",
+    "QuickCaptureToastController",
+    "SettingsWindowController"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "EditorDocument"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem",
+    "CaptureKind"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Models/Shortcut.swift",
+   "via": [
+    "ShortcutAction"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Services/HotKeyManager.swift",
+   "via": [
+    "HotKeyManager"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Views/MenuView.swift",
+   "via": [
+    "MenuView"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Editor/EditorRenderer.swift",
+   "via": [
+    "EditorRenderer"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "AreaSelection",
+    "CaptureItem",
+    "CaptureKind",
+    "CaptureSource"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/AreaSelector.swift",
+   "via": [
+    "AreaSelectionMode",
+    "AreaSelector",
+    "RecordingFrameOverlay"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureError",
+    "CaptureTarget",
+    "CaptureTargetResolver"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/FullPageCapture.swift",
+   "via": [
+    "FullPageCapture"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/HistoryStore.swift",
+   "via": [
+    "HistoryStore"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/ScreenRecorder.swift",
+   "via": [
+    "RecorderError",
+    "RecordingOptions",
+    "ScreenRecorder"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/ShareableContentStore.swift",
+   "via": [
+    "ShareableContentStore"
+   ]
+  },
+  {
+   "from": "App/AppModel.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "EditorDocument"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Editor/EditorView.swift",
+   "via": [
+    "EditorFinishAction",
+    "EditorView"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem",
+    "CaptureKind"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Services/HistoryStore.swift",
+   "via": [
+    "HistoryStore"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Views/HistoryView.swift",
+   "via": [
+    "HistoryView",
+    "HistoryViewState"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Views/PostCaptureView.swift",
+   "via": [
+    "PostCaptureView",
+    "QuickCaptureToastView"
+   ]
+  },
+  {
+   "from": "App/WindowControllers.swift",
+   "to": "Views/SettingsView.swift",
+   "via": [
+    "SettingsView"
+   ]
+  },
+  {
+   "from": "Editor/EditorDocument.swift",
+   "to": "Editor/EditorRenderer.swift",
+   "via": [
+    "EditorRenderer"
+   ]
+  },
+  {
+   "from": "Editor/EditorDocument.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "ImageFormat"
+   ]
+  },
+  {
+   "from": "Editor/EditorDocument.swift",
+   "to": "Services/BackgroundLibrary.swift",
+   "via": [
+    "BackgroundLibrary"
+   ]
+  },
+  {
+   "from": "Editor/EditorDocument.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
+   ]
+  },
+  {
+   "from": "Editor/EditorRenderer.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "Annotation",
+    "BeautifySettings",
+    "CanvasLayout",
+    "GradientDirection",
+    "ResolvedBackground"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "AspectPreset",
+    "BackgroundKind",
+    "BeautifySettings",
+    "BorderStyle",
+    "EditorDocument",
+    "EditorTool",
+    "GradientDirection",
+    "GradientPreset",
+    "RGBColor",
+    "StrokeSize",
+    "TextSize"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Editor/EditorRenderer.swift",
+   "via": [
+    "EditorRenderer"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "ImageFormat"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Services/BackgroundLibrary.swift",
+   "via": [
+    "BackgroundLibrary"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
+   ]
+  },
+  {
+   "from": "Models/SettingsStore.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "BeautifySettings"
+   ]
+  },
+  {
+   "from": "Models/SettingsStore.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureKind",
+    "CaptureSource",
+    "FrameRate",
+    "FullPageQuality",
+    "ImageFormat",
+    "VideoCodec",
+    "VideoContainer",
+    "VideoQuality"
+   ]
+  },
+  {
+   "from": "Models/SettingsStore.swift",
+   "to": "Models/Shortcut.swift",
+   "via": [
+    "Shortcut",
+    "ShortcutAction"
+   ]
+  },
+  {
+   "from": "Services/AreaSelector.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "AreaSelection"
+   ]
+  },
+  {
+   "from": "Services/CaptureTargetResolver.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "AreaSelection",
+    "CaptureSource"
+   ]
+  },
+  {
+   "from": "Services/CaptureTargetResolver.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "Services/FullPageCapture.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureError",
+    "CaptureTarget"
+   ]
+  },
+  {
+   "from": "Services/FullPageCapture.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
+   ]
+  },
+  {
+   "from": "Services/HistoryStore.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem",
+    "CaptureKind"
+   ]
+  },
+  {
+   "from": "Services/HistoryStore.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "Services/HotKeyManager.swift",
+   "to": "Models/Shortcut.swift",
+   "via": [
+    "Shortcut",
+    "ShortcutAction"
+   ]
+  },
+  {
+   "from": "Services/ScreenRecorder.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "VideoCodec",
+    "VideoContainer",
+    "VideoQuality"
+   ]
+  },
+  {
+   "from": "Services/ScreenRecorder.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureTarget"
+   ]
+  },
+  {
+   "from": "Services/ScreenRecorder.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "Services/ScreenshotService.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "ImageFormat"
+   ]
+  },
+  {
+   "from": "Services/ScreenshotService.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureTarget"
+   ]
+  },
+  {
+   "from": "Services/StorageManager.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureKind"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem",
+    "CaptureKind"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Services/HistoryStore.swift",
+   "via": [
+    "HistoryStore"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Services/ThumbnailCache.swift",
+   "via": [
+    "ThumbnailCache"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Views/SharedViews.swift",
+   "via": [
+    "DurationBadge",
+    "ThumbnailView"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "App/AppModel.swift",
+   "via": [
+    "AppModel"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem",
+    "CaptureKind",
+    "CaptureSource",
+    "FrameRate",
+    "ImageFormat",
+    "VideoCodec",
+    "VideoContainer",
+    "VideoQuality"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "Services/ScreenRecorder.swift",
+   "via": [
+    "RecordingOptions"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "Services/ShareableContentStore.swift",
+   "via": [
+    "ShareableContentStore"
+   ]
+  },
+  {
+   "from": "Views/MenuView.swift",
+   "to": "Views/SharedViews.swift",
+   "via": [
+    "DurationBadge",
+    "ElapsedTimeText",
+    "ThumbnailView"
+   ]
+  },
+  {
+   "from": "Views/PostCaptureView.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "CaptureItem"
+   ]
+  },
+  {
+   "from": "Views/PostCaptureView.swift",
+   "to": "Views/SharedViews.swift",
+   "via": [
+    "DurationBadge",
+    "ThumbnailView"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Editor/EditorDocument.swift",
+   "via": [
+    "BeautifySettings",
+    "CanvasLayout"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Editor/EditorView.swift",
+   "via": [
+    "BeautifyBackgroundView",
+    "BeautifyStyleControls"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "FullPageQuality",
+    "ImageFormat"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Models/SettingsStore.swift",
+   "via": [
+    "SettingsStore"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Models/Shortcut.swift",
+   "via": [
+    "Shortcut",
+    "ShortcutAction"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Services/HotKeyManager.swift",
+   "via": [
+    "HotKeyManager"
+   ]
+  },
+  {
+   "from": "Views/SettingsView.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
+   ]
+  },
+  {
+   "from": "Views/SharedViews.swift",
+   "to": "Services/ThumbnailCache.swift",
+   "via": [
+    "ThumbnailCache"
+   ]
+  },
+  {
+   "from": "main.swift",
+   "to": "App/AppDelegate.swift",
+   "via": [
+    "AppDelegate"
+   ]
+  }
+ ]
+}
