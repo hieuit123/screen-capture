@@ -191,6 +191,7 @@ private struct StyleBar: View {
             Label(doc.tool.title, systemImage: doc.tool.symbol)
                 .font(.callout.weight(.semibold))
                 .frame(minWidth: 120, alignment: .leading)
+                .fixedSize()
 
             if EditorTool.shapes.contains(doc.tool) {
                 Picker("Shape", selection: Binding(get: { doc.tool }, set: { doc.tool = $0 })) {
@@ -295,8 +296,11 @@ private struct StyleBar: View {
                 .foregroundStyle(.secondary)
         }
         .controlSize(.small)
+        .lineLimit(1)
+        // Fixed height so the bar (and the canvas below it) doesn't jump when the controls change with the selection.
+        .frame(height: 28)
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(.bar)
     }
 }
@@ -327,8 +331,7 @@ private struct EditorCanvas: View {
             ScrollView([.horizontal, .vertical]) {
                 ZStack(alignment: .topLeading) {
                     if beautify.enabled {
-                        LinearGradient(colors: beautify.preset.colors.map { Color(nsColor: $0) },
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                        BeautifyBackgroundView(style: beautify)
                     }
                     Image(decorative: doc.image, scale: 1)
                         .resizable()
@@ -688,31 +691,30 @@ private struct BeautifyPanel: View {
     }
 }
 
-/// Background preset, padding, corners, shadow and aspect controls. Shared by the editor and Settings.
+/// Background, padding, corners, shadow and aspect controls. Shared by the editor and Settings.
 struct BeautifyStyleControls: View {
     @Binding var style: BeautifySettings
     var isEnabled = true
     var onPickPreset: (() -> Void)?
 
+    @State private var importFailed = false
+    private let library = BackgroundLibrary.shared
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+
     var body: some View {
         Section("Background") {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                ForEach(GradientPreset.all) { preset in
-                    let isSelected = style.presetID == preset.id
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(LinearGradient(colors: preset.colors.map { Color(nsColor: $0) },
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(height: 36)
-                        .overlay(RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(isSelected ? Color.accentColor : .primary.opacity(0.1), lineWidth: isSelected ? 2.5 : 1))
-                        .help(preset.name)
-                        .onTapGesture {
-                            style.presetID = preset.id
-                            onPickPreset?()
-                        }
-                }
+            Picker("Background", selection: binding(\.background)) {
+                ForEach(BackgroundKind.allCases) { Text($0.title).tag($0) }
             }
-            .padding(.vertical, 4)
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            switch style.background {
+            case .preset: presetGrid
+            case .solid: ColorPicker("Colour", selection: colorBinding(\.solidColor), supportsOpacity: false)
+            case .gradient: gradientControls
+            case .image: imageControls
+            }
         }
 
         Section("Layout") {
@@ -729,6 +731,125 @@ struct BeautifyStyleControls: View {
             .pickerStyle(.segmented)
         }
         .disabled(!isEnabled)
+    }
+
+    private var presetGrid: some View {
+        LazyVGrid(columns: columns, spacing: 8) {
+            ForEach(GradientPreset.all) { preset in
+                tile(selected: style.presetID == preset.id) {
+                    LinearGradient(colors: preset.colors.map { Color(nsColor: $0) },
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+                .help(preset.name)
+                .onTapGesture { update { $0.presetID = preset.id } }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var gradientControls: some View {
+        ColorPicker("From", selection: colorBinding(\.gradient.from), supportsOpacity: false)
+        ColorPicker("To", selection: colorBinding(\.gradient.to), supportsOpacity: false)
+        Picker("Direction", selection: binding(\.gradient.direction)) {
+            ForEach(GradientDirection.allCases) { direction in
+                Image(systemName: direction.symbol).help(direction.title).tag(direction)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    @ViewBuilder
+    private var imageControls: some View {
+        if !library.names.isEmpty {
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(library.names, id: \.self) { name in
+                    tile(selected: style.imageName == name) {
+                        if let image = library.image(named: name) {
+                            Image(decorative: image, scale: 1).resizable().scaledToFill()
+                        } else {
+                            Color.secondary.opacity(0.2)
+                        }
+                    }
+                    .onTapGesture { update { $0.imageName = name } }
+                    .contextMenu {
+                        Button("Remove", role: .destructive) { library.remove(name) }
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        Button("Choose Image…", systemImage: "photo", action: chooseImage)
+        if importFailed {
+            Text("Couldn't use that image.")
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+    }
+
+    private func tile(selected: Bool, @ViewBuilder content: () -> some View) -> some View {
+        content()
+            .frame(height: 36)
+            .frame(maxWidth: .infinity)
+            .clipShape(.rect(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(selected ? Color.accentColor : .primary.opacity(0.1), lineWidth: selected ? 2.5 : 1))
+            .contentShape(.rect)
+    }
+
+    private func chooseImage() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let name = try library.importImage(from: url)
+            importFailed = false
+            update { $0.imageName = name }
+        } catch {
+            importFailed = true
+        }
+    }
+
+    /// Applies a background change and turns Beautify on in the editor.
+    private func update(_ change: (inout BeautifySettings) -> Void) {
+        change(&style)
+        onPickPreset?()
+    }
+
+    private func binding<Value>(_ keyPath: WritableKeyPath<BeautifySettings, Value>) -> Binding<Value> {
+        Binding(get: { style[keyPath: keyPath] }, set: { value in update { $0[keyPath: keyPath] = value } })
+    }
+
+    private func colorBinding(_ keyPath: WritableKeyPath<BeautifySettings, RGBColor>) -> Binding<Color> {
+        Binding(get: { Color(nsColor: style[keyPath: keyPath].nsColor) },
+                set: { color in update { $0[keyPath: keyPath] = RGBColor(NSColor(color)) } })
+    }
+}
+
+/// SwiftUI twin of `EditorRenderer.drawBackground`, so previews match exported images.
+struct BeautifyBackgroundView: View {
+    let style: BeautifySettings
+
+    var body: some View {
+        switch style.resolvedBackground {
+        case .gradient(let colors, let direction):
+            let (start, end) = direction.points
+            LinearGradient(colors: colors.map { Color(nsColor: $0) },
+                           startPoint: UnitPoint(x: start.x, y: start.y), endPoint: UnitPoint(x: end.x, y: end.y))
+        case .solid(let color):
+            Color(nsColor: color)
+        case .image(let image):
+            GeometryReader { geo in
+                let rect = EditorRenderer.aspectFillRect(for: CGSize(width: image.width, height: image.height),
+                                                         in: CGRect(origin: .zero, size: geo.size))
+                Image(decorative: image, scale: 1)
+                    .resizable()
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
+            }
+            .clipped()
+        }
     }
 }
 

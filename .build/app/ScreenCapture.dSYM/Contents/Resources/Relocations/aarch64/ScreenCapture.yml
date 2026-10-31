@@ -1,5 +1,5 @@
 ---
 triple:          'arm64-apple-darwin'
-binary-path:     '/Users/admin/projects/screen-capture/.build/app/ScreenCapture'
+binary-path:     '/Users/hieutranminh/projects/screen-capture/.build/app/ScreenCapture'
 relocations:     []
 ...

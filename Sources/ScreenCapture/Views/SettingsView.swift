@@ -131,8 +131,7 @@ private struct BeautifyPreview: View {
             let image = CGRect(x: layout.imageRect.minX * scale, y: layout.imageRect.minY * scale,
                                width: layout.imageRect.width * scale, height: layout.imageRect.height * scale)
             ZStack(alignment: .topLeading) {
-                LinearGradient(colors: style.preset.colors.map { Color(nsColor: $0) },
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                BeautifyBackgroundView(style: style)
                 VStack(spacing: 0) {
                     HStack(spacing: 3) {
                         ForEach([Color.red, .yellow, .green], id: \.self) { Circle().fill($0).frame(width: 5, height: 5) }
