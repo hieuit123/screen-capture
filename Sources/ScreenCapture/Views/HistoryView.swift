@@ -16,6 +16,7 @@ struct HistoryView: View {
     let onEdit: (CaptureItem) -> Void
     let onCopyText: (CaptureItem) -> Void
     let onPin: (CaptureItem) -> Void
+    let onTrim: (CaptureItem) -> Void
 
     private var items: [CaptureItem] {
         let all = history.items(for: state.kind)
@@ -115,6 +116,8 @@ struct HistoryView: View {
     private func contextMenu(for item: CaptureItem) -> some View {
         if item.kind == .screenshot {
             Button("Edit…") { onEdit(item) }
+        } else {
+            Button("Trim…") { onTrim(item) }
         }
         Button("Open") { NSWorkspace.shared.open(item.url) }
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
@@ -165,7 +168,7 @@ private struct HistoryCard: View {
                 .aspectRatio(16 / 10, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 10))
                 .overlay(alignment: .bottomTrailing) {
-                    if item.kind == .recording { DurationBadge(url: item.url).padding(6) }
+                    if item.kind == .recording { DurationBadge(url: item.url, version: item.modified).padding(6) }
                 }
                 .overlay(alignment: .center) {
                     if item.kind == .recording {

@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     private var historyController: HistoryWindowController?
     private var settingsController: SettingsWindowController?
     private var editorControllers: [EditorWindowController] = []
+    private var trimControllers: [TrimWindowController] = []
     private let postCapture = PostCapturePanelController()
     private let quickToast = QuickCaptureToastController()
     private lazy var pins = PinManager(
@@ -224,7 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let windows = [self.historyController?.window, self.settingsController?.window]
-                + self.editorControllers.map(\.window)
+                + self.editorControllers.map(\.window) + self.trimControllers.map(\.window)
             let anyVisible = windows.contains { $0?.isVisible == true }
             NSApp.setActivationPolicy(anyVisible ? .regular : .accessory)
         }
@@ -252,9 +253,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     func showPostCapture(_ item: CaptureItem) {
         let edit: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.openEditor(url: item.url, image: nil, beautify: false) } : nil
         let pin: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.pinFile(item.url) } : nil
+        let trim: (() -> Void)? = item.kind == .recording ? { [weak self] in self?.openTrimmer(url: item.url) } : nil
         postCapture.show(item: item, openHistory: { [weak self] in
             self?.openHistory(item.kind, select: item.url)
-        }, edit: edit, pin: pin)
+        }, edit: edit, trim: trim, pin: pin)
+    }
+
+    func openTrimmer(url: URL) {
+        dismissPopover()
+        if let existing = trimControllers.first(where: { $0.url == url }) {
+            existing.present()
+            return
+        }
+        let controller = TrimWindowController(url: url)
+        controller.onFinish = { [weak self] url in
+            ThumbnailCache.shared.invalidate(url)
+            self?.model.history.reload()
+            if let thumbnail = NSWorkspace.shared.icon(forFile: url.path).cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                self?.quickToast.show(image: thumbnail, title: "Recording trimmed",
+                                      subtitle: "The original is in the Trash", on: CGMainDisplayID()) {}
+            }
+        }
+        controller.onClose = { [weak self] closed in
+            self?.trimControllers.removeAll { $0 === closed }
+            self?.updateActivationPolicySoon()
+        }
+        trimControllers.append(controller)
+        controller.present()
     }
 
     var isPopoverShown: Bool { popover.isShown }
@@ -332,6 +357,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
                 self?.copyText(from: item.url)
             } onPin: { [weak self] item in
                 self?.pinFile(item.url)
+            } onTrim: { [weak self] item in
+                self?.openTrimmer(url: item.url)
             }
             controller.onClose = { [weak self] in self?.updateActivationPolicySoon() }
             historyController = controller

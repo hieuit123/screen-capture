@@ -36,6 +36,8 @@ struct ThumbnailView: View {
 
 struct DurationBadge: View {
     let url: URL
+    /// Modification date; a new value reloads the duration (the file was trimmed in place).
+    var version: Date = .distantPast
     @State private var duration: Double?
 
     var body: some View {
@@ -49,7 +51,9 @@ struct DurationBadge: View {
                     .foregroundStyle(.white)
             }
         }
-        .task(id: url) { duration = await ThumbnailCache.shared.duration(for: url) }
+        .task(id: "\(url.path)#\(version.timeIntervalSince1970)") {
+            duration = await ThumbnailCache.shared.duration(for: url)
+        }
     }
 }
 

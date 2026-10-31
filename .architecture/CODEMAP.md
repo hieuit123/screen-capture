@@ -65,6 +65,12 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
   Opacity, Close, Close All Pins).
 - `PinContentView` (private): layer-drawn image, drag to move (`performDrag`), aspect-locked edge resize, ✕ on hover.
 
+### `App/TrimWindowController.swift` (104)
+`TrimWindowController`: window with `AVPlayerView`; waits for `canBeginTrimming`, `await beginTrimming()`;
+OK → range from `reversePlaybackEndTime`/`forwardPlaybackEndTime` → releases the player item →
+`VideoTrimmer.trim` → `onFinish` + close; errors show a sheet and restart trimming. Opened by
+`AppDelegate.openTrimmer(url:)` (one per URL) from the post-recording card (`trim`) and History (`onTrim`).
+
 ## Models/
 
 ### `Models/Models.swift` (156)
@@ -143,8 +149,13 @@ q=0.9 lossy, nonisolated), `copyToPasteboard`.
 `TextRecognizer.recognize(_ CGImage) async throws -> String` — Vision `RecognizeTextRequest` (accurate, auto language,
 language correction), lines joined by `\n`, empty when no text.
 
+### `Services/VideoTrimmer.swift` (53)
+`VideoTrimmer.trim(_:to:)`: passthrough `AVAssetExportSession` (no re-encode) to a hidden temp sibling, copies
+the creation date, trashes the original and moves the result into place; restores the original on failure.
+Full-range = no-op. `TrimError`.
+
 ### `Services/ThumbnailCache.swift` (54)
-`ThumbnailCache.shared`: QuickLook thumbnails in `NSCache` (limit 400, keyed by path+mtime+size), video `duration(for:)`.
+`ThumbnailCache.shared`: QuickLook thumbnails in `NSCache` (limit 400, keyed by path+mtime+size), video `duration(for:)`, `invalidate(_:)` (after trimming).
 `extension Double { durationString }`.
 
 ## Editor/
@@ -216,7 +227,7 @@ recording). `extension SettingsStore.shortcutBinding(for:)` L270.
 `PostCaptureView` L4 (preview, Open/Finder/Copy/Edit, View History), `QuickCaptureToastView` L80.
 
 ### `Views/SharedViews.swift` (65)
-`ThumbnailView` (async `ThumbnailCache`), `DurationBadge`, `ElapsedTimeText`.
+`ThumbnailView` (async `ThumbnailCache`), `DurationBadge` (reloads when `version`/mtime changes), `ElapsedTimeText`.
 
 ## Non-source
 

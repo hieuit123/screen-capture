@@ -5,6 +5,7 @@ struct PostCaptureView: View {
     let item: CaptureItem
     let openHistory: () -> Void
     let edit: (() -> Void)?
+    let trim: (() -> Void)?
     let pin: (() -> Void)?
     let close: () -> Void
     let onHoverChange: (Bool) -> Void
@@ -40,7 +41,7 @@ struct PostCaptureView: View {
                 .aspectRatio(16 / 10, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 10))
                 .overlay(alignment: .bottomTrailing) {
-                    if item.kind == .recording { DurationBadge(url: item.url).padding(6) }
+                    if item.kind == .recording { DurationBadge(url: item.url, version: item.modified).padding(6) }
                 }
                 .onTapGesture { NSWorkspace.shared.open(item.url) }
                 .draggable(item.url)
@@ -55,6 +56,9 @@ struct PostCaptureView: View {
             HStack(spacing: 6) {
                 if let edit {
                     Button("Edit", systemImage: "pencil.and.scribble", action: edit)
+                }
+                if let trim {
+                    Button("Trim", systemImage: "timeline.selection", action: trim)
                 }
                 Button("Open", systemImage: "arrow.up.forward.app") {
                     NSWorkspace.shared.open(item.url)

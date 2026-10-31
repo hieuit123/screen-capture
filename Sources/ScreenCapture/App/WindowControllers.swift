@@ -7,7 +7,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
 
     init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void, onCopyText: @escaping (CaptureItem) -> Void,
-         onPin: @escaping (CaptureItem) -> Void) {
+         onPin: @escaping (CaptureItem) -> Void, onTrim: @escaping (CaptureItem) -> Void) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1040, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -17,7 +17,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = false
 
         let hosting = NSHostingController(rootView: HistoryView(history: history, state: state, onEdit: onEdit,
-                                                                onCopyText: onCopyText, onPin: onPin))
+                                                                onCopyText: onCopyText, onPin: onPin, onTrim: onTrim))
         hosting.sceneBridgingOptions = [.toolbars, .title]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting
@@ -364,7 +364,8 @@ final class PostCapturePanelController {
         anchor: .bottomTrailing, margin: 16, dismissDelay: .seconds(8), hoverDismissDelay: .seconds(8),
         entryOffset: CGSize(width: 372, height: 0), fadeInDuration: 0.3, fadeOutDuration: 0.2))
 
-    func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?, pin: (() -> Void)?) {
+    func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?, trim: (() -> Void)?,
+              pin: (() -> Void)?) {
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                             backing: .buffered, defer: false)
         panel.level = .floating
@@ -385,6 +386,10 @@ final class PostCapturePanelController {
             edit: edit.map { edit in { [weak self] in
                 self?.stack.close(id)
                 edit()
+            } },
+            trim: trim.map { trim in { [weak self] in
+                self?.stack.close(id)
+                trim()
             } },
             pin: pin.map { pin in { [weak self] in
                 self?.stack.close(id)

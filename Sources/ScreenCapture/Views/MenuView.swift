@@ -450,7 +450,7 @@ private struct RecentStrip: View {
                                 .clipShape(.rect(cornerRadius: 8))
                                 .overlay(alignment: .bottomTrailing) {
                                     if kind == .recording {
-                                        DurationBadge(url: item.url).scaleEffect(0.85).padding(2)
+                                        DurationBadge(url: item.url, version: item.modified).scaleEffect(0.85).padding(2)
                                     }
                                 }
                         }

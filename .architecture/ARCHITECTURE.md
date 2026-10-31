@@ -17,7 +17,7 @@
 
 - `AppDelegate` **owns** `AppModel`, `NSStatusItem`, `NSPopover(MenuView)`, `HistoryWindowController?`,
   `SettingsWindowController?`, `[EditorWindowController]`, `PostCapturePanelController`, `QuickCaptureToastController`,
-  `PinManager` (floating pins).
+  `PinManager` (floating pins), `[TrimWindowController]`.
 - `AppModel` **owns** `SettingsStore`, `ShareableContentStore`, `HistoryStore`, `AreaSelector`,
   `RecordingFrameOverlay`, current `ScreenRecorder?`.
 - `EditorWindowController` **owns** one `EditorDocument` and hosts `EditorView`.
