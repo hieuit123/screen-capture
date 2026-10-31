@@ -12,6 +12,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     private var editorControllers: [EditorWindowController] = []
     private let postCapture = PostCapturePanelController()
     private let quickToast = QuickCaptureToastController()
+    private lazy var pins = PinManager(
+        saveImage: { [weak self] image in
+            guard let self else { throw CancellationError() }
+            return try await self.model.saveToScreenshots(image)
+        },
+        openEditor: { [weak self] url in self?.openEditor(url: url, image: nil, beautify: false) },
+        showError: { [weak self] message in self?.showError(message) })
     private var statusTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -97,6 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         menu.addItem(item("Capture Area", shortcut: .areaScreenshot, action: #selector(menuCaptureArea)))
         menu.addItem(item("Full-Page Screenshot (Chrome)", shortcut: .fullPageScreenshot, action: #selector(menuFullPage)))
         menu.addItem(item("Capture Text (OCR)", shortcut: .captureText, action: #selector(menuCaptureText)))
+        menu.addItem(item("Pin Area", shortcut: .pinArea, action: #selector(menuPinArea)))
+        if pins.hasPins {
+            menu.addItem(item("Close All Pins", action: #selector(menuCloseAllPins)))
+        }
         menu.addItem(.separator())
         menu.addItem(item("Recording History…", action: #selector(menuRecordingHistory)))
         menu.addItem(item("Screenshot History…", action: #selector(menuScreenshotHistory)))
@@ -129,6 +140,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     @objc private func menuCaptureArea() { model.captureArea() }
     @objc private func menuFullPage() { model.captureFullPage() }
     @objc private func menuCaptureText() { model.captureText() }
+    @objc private func menuPinArea() { model.pinArea() }
+    @objc private func menuCloseAllPins() { pins.closeAll() }
     @objc private func menuQuickScreenshot() { model.quickScreenshot() }
     @objc private func menuSettings() { openSettings() }
     @objc func showSettings(_ sender: Any?) { openSettings() }
@@ -181,6 +194,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             case .areaScreenshot: model.captureArea()
             case .fullPageScreenshot: model.captureFullPage()
             case .captureText: model.captureText()
+            case .pinArea: model.pinArea()
             case .toggleRecording: model.toggleRecording()
             }
         }
@@ -237,9 +251,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
 
     func showPostCapture(_ item: CaptureItem) {
         let edit: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.openEditor(url: item.url, image: nil, beautify: false) } : nil
+        let pin: (() -> Void)? = item.kind == .screenshot ? { [weak self] in self?.pinFile(item.url) } : nil
         postCapture.show(item: item, openHistory: { [weak self] in
             self?.openHistory(item.kind, select: item.url)
-        }, edit: edit)
+        }, edit: edit, pin: pin)
     }
 
     var isPopoverShown: Bool { popover.isShown }
@@ -250,6 +265,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
                         subtitle: "Saved to ScreenCapture/images · Click to edit", on: displayID) { [weak self] in
             self?.openEditor(url: url, image: image, beautify: beautify)
         }
+    }
+
+    func pin(image: CGImage, sourceURL: URL?, at frame: NSRect?) {
+        pins.pin(image: image, sourceURL: sourceURL, at: frame)
+    }
+
+    /// Pins a screenshot file (post-capture card, History).
+    private func pinFile(_ url: URL) {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            showError("Couldn't open \(url.lastPathComponent).")
+            return
+        }
+        pins.pin(image: image, sourceURL: url, at: nil)
     }
 
     func showTextToast(thumbnail: CGImage, text: String, on displayID: CGDirectDisplayID) {
@@ -287,6 +316,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             self?.editorControllers.removeAll { $0 === closed }
             self?.updateActivationPolicySoon()
         }
+        controller.onPin = { [weak self] image, url in
+            self?.pins.pin(image: image, sourceURL: url, at: nil)
+        }
         editorControllers.append(controller)
         controller.present()
     }
@@ -298,6 +330,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
                 self?.openEditor(url: item.url, image: nil, beautify: false)
             } onCopyText: { [weak self] item in
                 self?.copyText(from: item.url)
+            } onPin: { [weak self] item in
+                self?.pinFile(item.url)
             }
             controller.onClose = { [weak self] in self?.updateActivationPolicySoon() }
             historyController = controller

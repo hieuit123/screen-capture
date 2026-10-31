@@ -6,7 +6,8 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     let state = HistoryViewState()
     var onClose: (() -> Void)?
 
-    init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void, onCopyText: @escaping (CaptureItem) -> Void) {
+    init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void, onCopyText: @escaping (CaptureItem) -> Void,
+         onPin: @escaping (CaptureItem) -> Void) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1040, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -16,7 +17,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = false
 
         let hosting = NSHostingController(rootView: HistoryView(history: history, state: state, onEdit: onEdit,
-                                                                onCopyText: onCopyText))
+                                                                onCopyText: onCopyText, onPin: onPin))
         hosting.sceneBridgingOptions = [.toolbars, .title]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting
@@ -53,6 +54,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     var onClose: ((EditorWindowController) -> Void)?
     /// Copy/Save finished and the window closed itself.
     var onFinish: ((EditorFinishAction, CGImage, CGDirectDisplayID?) -> Void)?
+    /// Pin the edited image (with the document's file URL).
+    var onPin: ((CGImage, URL) -> Void)?
 
     init(document: EditorDocument, settings: SettingsStore) {
         self.editorDocument = document
@@ -70,6 +73,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             NSWorkspace.shared.activateFileViewerSelecting([document.fileURL])
         } onFinish: { action, image in
             weakSelf?.finish(action, image: image)
+        } onPin: { image in
+            weakSelf?.onPin?(image, document.fileURL)
         }
         let hosting = NSHostingController(rootView: view)
         hosting.sceneBridgingOptions = [.toolbars]
@@ -359,7 +364,7 @@ final class PostCapturePanelController {
         anchor: .bottomTrailing, margin: 16, dismissDelay: .seconds(8), hoverDismissDelay: .seconds(8),
         entryOffset: CGSize(width: 372, height: 0), fadeInDuration: 0.3, fadeOutDuration: 0.2))
 
-    func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?) {
+    func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?, pin: (() -> Void)?) {
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                             backing: .buffered, defer: false)
         panel.level = .floating
@@ -380,6 +385,10 @@ final class PostCapturePanelController {
             edit: edit.map { edit in { [weak self] in
                 self?.stack.close(id)
                 edit()
+            } },
+            pin: pin.map { pin in { [weak self] in
+                self?.stack.close(id)
+                pin()
             } },
             close: { [weak self] in self?.stack.close(id) },
             onHoverChange: { [weak self] hovering in self?.stack.setHovered(id, hovering) })

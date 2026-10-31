@@ -5,7 +5,7 @@
   {
    "id": "App/AppDelegate.swift",
    "layer": "App",
-   "loc": 381,
+   "loc": 415,
    "types": [
     "AppDelegate",
     "MainMenu"
@@ -17,7 +17,7 @@
   {
    "id": "App/AppModel.swift",
    "layer": "App",
-   "loc": 307,
+   "loc": 340,
    "types": [
     "AppUI",
     "AppModel"
@@ -25,9 +25,21 @@
    "extends": []
   },
   {
+   "id": "App/PinWindows.swift",
+   "layer": "App",
+   "loc": 361,
+   "types": [
+    "PinManager",
+    "PinController"
+   ],
+   "extends": [
+    "AreaSelection"
+   ]
+  },
+  {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 403,
+   "loc": 412,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -80,7 +92,7 @@
   {
    "id": "Editor/EditorView.swift",
    "layer": "Editor",
-   "loc": 884,
+   "loc": 893,
    "types": [
     "EditorFinishAction",
     "EditorView",
@@ -122,7 +134,7 @@
   {
    "id": "Models/Shortcut.swift",
    "layer": "Models",
-   "loc": 98,
+   "loc": 101,
    "types": [
     "Shortcut",
     "ShortcutAction"
@@ -257,7 +269,7 @@
   {
    "id": "Views/HistoryView.swift",
    "layer": "Views",
-   "loc": 317,
+   "loc": 319,
    "types": [
     "HistoryViewState",
     "HistoryView"
@@ -278,7 +290,7 @@
   {
    "id": "Views/PostCaptureView.swift",
    "layer": "Views",
-   "loc": 115,
+   "loc": 126,
    "types": [
     "PostCaptureView",
     "QuickCaptureToastView"
@@ -324,6 +336,13 @@
    "via": [
     "AppModel",
     "AppUI"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "App/PinWindows.swift",
+   "via": [
+    "PinManager"
    ]
   },
   {
@@ -471,6 +490,20 @@
    "to": "Services/TextRecognizer.swift",
    "via": [
     "TextRecognizer"
+   ]
+  },
+  {
+   "from": "App/PinWindows.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "AreaSelection"
+   ]
+  },
+  {
+   "from": "App/PinWindows.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
    ]
   },
   {

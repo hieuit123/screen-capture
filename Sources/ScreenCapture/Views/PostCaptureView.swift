@@ -5,6 +5,7 @@ struct PostCaptureView: View {
     let item: CaptureItem
     let openHistory: () -> Void
     let edit: (() -> Void)?
+    let pin: (() -> Void)?
     let close: () -> Void
     let onHoverChange: (Bool) -> Void
 
@@ -16,6 +17,16 @@ struct PostCaptureView: View {
                 Text(item.kind == .recording ? "Recording saved" : "Screenshot saved")
                     .font(.headline)
                 Spacer()
+                if let pin {
+                    Button(action: pin) {
+                        Image(systemName: "pin")
+                            .font(.caption.weight(.bold))
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .controlSize(.small)
+                    .help("Pin to screen")
+                }
                 Button(action: close) {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.bold))

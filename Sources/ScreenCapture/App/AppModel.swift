@@ -13,6 +13,8 @@ protocol AppUI: AnyObject {
     func showQuickCaptureToast(url: URL, image: CGImage, thumbnail: CGImage, on displayID: CGDirectDisplayID)
     /// Confirms an OCR copy. `text` is empty when nothing was recognized.
     func showTextToast(thumbnail: CGImage, text: String, on displayID: CGDirectDisplayID)
+    /// Floats the image on top of other windows. `frame` (global coordinates) places it exactly.
+    func pin(image: CGImage, sourceURL: URL?, at frame: NSRect?)
     var isPopoverShown: Bool { get }
     func openHistory(_ kind: CaptureKind, select url: URL?)
     func showError(_ message: String)
@@ -177,6 +179,37 @@ final class AppModel {
                 ui?.showError(error.localizedDescription)
             }
         }
+    }
+
+    /// Drag an area and pin it on screen, exactly where it was. Nothing is saved.
+    func pinArea() {
+        guard phase == .idle || phase.isRecording else { return }
+        Task {
+            let wasIdle = phase == .idle
+            if wasIdle { phase = .preparing }
+            defer { if wasIdle { phase = .idle } }
+            do {
+                let target = try await resolveTarget(source: .area, mode: .screenshot)
+                let image = try await ScreenshotService.capture(target: target, showsCursor: false)
+                ui?.pin(image: image, sourceURL: nil, at: target.areaSelection?.globalFrame)
+            } catch CaptureError.cancelled {
+                return
+            } catch {
+                ui?.showError(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Writes an image to the screenshots folder (current format) and returns its URL.
+    func saveToScreenshots(_ image: CGImage) async throws -> URL {
+        let format = settings.imageFormat
+        let url = try StorageManager.newFileURL(kind: .screenshot, fileExtension: format.fileExtension)
+        try await Task.detached(priority: .userInitiated) {
+            try ScreenshotService.write(image, to: url, format: format)
+        }.value
+        settings.lastActionKind = .screenshot
+        history.reload()
+        return url
     }
 
     /// Recognizes the text in the image, copies it and confirms with a toast.
