@@ -34,7 +34,8 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
   - `refreshContent` L49, `requestScreenPermission` L56, `fixSelections` L63 (keeps selected display/window/app valid).
   - Public actions: `performPrimaryAction` L77, `toggleRecording` L81, `takeScreenshot` L89,
     `quickScreenshot` L96, `captureArea` L145, `captureFullPage` L151, `captureText` (area → OCR, no file),
-    `copyRecognizedText(from:displayID:)` (OCR → clipboard → `ui.showTextToast`; also used by History).
+    `copyRecognizedText(from:displayID:)` (OCR → clipboard → `ui.showTextToast`; also used by History),
+    `pinArea` (area → `ui.pin` at the area's global frame), `saveToScreenshots(_:)`.
   - `captureQuickScreenshot` L104 (resolve display under mouse → capture → `finalImage` → clipboard → sound →
     write → toast).
   - `finalImage(for:)` L134 (auto-Beautify via `EditorRenderer.render`), `shutterSound` L139.
@@ -55,6 +56,15 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
 - `PostCapturePanelController` L356: bottom-right card (`PostCaptureView`) on a stack, 8 s.
 - `extension NSApplication { forceActivate() }` L395.
 
+### `App/PinWindows.swift` (361)
+- `PinManager`: `pin(image:sourceURL:at:)`, `closeAll()`, `hasPins`, `defaultFrame(for:on:index:)` (60% cap, cascade).
+  Owned by `AppDelegate` (save via `AppModel.saveToScreenshots`, edit via `openEditor`).
+- `extension AreaSelection { globalFrame }` (top-left display points → global AppKit rect).
+- `PinPanel` (private NSPanel): `sendEvent` handles scroll/pinch zoom and Esc.
+- `PinController`: panel setup, `clamp` (aspect, ≥80 pt, ≤ screen), zoom, context menu (Copy, Save, Edit…,
+  Opacity, Close, Close All Pins).
+- `PinContentView` (private): layer-drawn image, drag to move (`performDrag`), aspect-locked edge resize, ✕ on hover.
+
 ## Models/
 
 ### `Models/Models.swift` (156)
@@ -72,8 +82,8 @@ image format, full-page quality, clipboard/post-capture/editor/sound toggles, `a
 
 ### `Models/Shortcut.swift` (95)
 `struct Shortcut` (keyCode, modifiers, key; `carbonModifiers`, `displayString`, `init?(event:)`) L5.
-`enum ShortcutAction` (screenshot, quickScreenshot, areaScreenshot, fullPageScreenshot, captureText, toggleRecording) L60
-with `title`, `detail`, `defaultShortcut` (⌃⌥⌘ S/D/A/F/T/R).
+`enum ShortcutAction` (screenshot, quickScreenshot, areaScreenshot, fullPageScreenshot, captureText, pinArea,
+toggleRecording) L60 with `title`, `detail`, `defaultShortcut` (⌃⌥⌘ S/D/A/F/T/P/R).
 
 ## Services/
 

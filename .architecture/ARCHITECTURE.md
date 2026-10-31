@@ -16,7 +16,8 @@
 ### Ownership (who creates/holds whom)
 
 - `AppDelegate` **owns** `AppModel`, `NSStatusItem`, `NSPopover(MenuView)`, `HistoryWindowController?`,
-  `SettingsWindowController?`, `[EditorWindowController]`, `PostCapturePanelController`, `QuickCaptureToastController`.
+  `SettingsWindowController?`, `[EditorWindowController]`, `PostCapturePanelController`, `QuickCaptureToastController`,
+  `PinManager` (floating pins).
 - `AppModel` **owns** `SettingsStore`, `ShareableContentStore`, `HistoryStore`, `AreaSelector`,
   `RecordingFrameOverlay`, current `ScreenRecorder?`.
 - `EditorWindowController` **owns** one `EditorDocument` and hosts `EditorView`.
@@ -26,7 +27,7 @@
 ## 2. Key abstractions
 
 - **`AppUI` protocol** (AppModel.swift:7) — the model→shell boundary: `dismissPopover`, `phaseDidChange`,
-  `showPostCapture`, `openEditor(url:image:beautify:)`, `showQuickCaptureToast`, `showTextToast`, `openHistory`, `showError`,
+  `showPostCapture`, `openEditor(url:image:beautify:)`, `showQuickCaptureToast`, `showTextToast`, `pin`, `openHistory`, `showError`,
   `isPopoverShown`. New UI side effects go here and are implemented in `AppDelegate`.
 - **`AppModel.Phase`**: `idle → preparing → recording(since:) → finishing → idle`. Screenshots are allowed while
   recording (they only set `preparing` if started from idle). `didSet` calls `ui.phaseDidChange()`

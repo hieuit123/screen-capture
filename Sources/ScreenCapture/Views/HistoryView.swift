@@ -15,6 +15,7 @@ struct HistoryView: View {
     @Bindable var state: HistoryViewState
     let onEdit: (CaptureItem) -> Void
     let onCopyText: (CaptureItem) -> Void
+    let onPin: (CaptureItem) -> Void
 
     private var items: [CaptureItem] {
         let all = history.items(for: state.kind)
@@ -120,6 +121,7 @@ struct HistoryView: View {
         Button("Copy") { copy(item) }
         if item.kind == .screenshot {
             Button("Copy Text") { onCopyText(item) }
+            Button("Pin to Screen") { onPin(item) }
         }
         ShareLink(item: item.url)
         Divider()

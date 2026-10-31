@@ -10,6 +10,8 @@ struct EditorView: View {
     let showInFinder: () -> Void
     /// Called when ⌘C / ⌘S should close the editor (see Settings › Close the editor after copying or saving).
     let onFinish: (EditorFinishAction, CGImage) -> Void
+    /// Floats the edited image on screen.
+    let onPin: (CGImage) -> Void
 
     @State private var showInspector = true
     @State private var toast: String?
@@ -30,7 +32,7 @@ struct EditorView: View {
         .toolbar { toolbarContent }
         .inspector(isPresented: $showInspector) {
             BeautifyPanel(doc: doc, settings: settings, copy: copy, save: save, saveAs: saveAs, copyText: copyText,
-                          showInFinder: showInFinder)
+                          pin: pin, showInFinder: showInFinder)
                 .inspectorColumnWidth(min: 250, ideal: 280, max: 340)
         }
         .overlay(alignment: .bottom) {
@@ -128,6 +130,11 @@ struct EditorView: View {
                 flash("Save failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    private func pin() {
+        guard let image = doc.renderOutput() else { return }
+        onPin(image)
     }
 
     /// OCRs the screenshot (without annotations) and copies the text.
@@ -677,6 +684,7 @@ private struct BeautifyPanel: View {
     let save: () -> Void
     let saveAs: () -> Void
     let copyText: () -> Void
+    let pin: () -> Void
     let showInFinder: () -> Void
 
     var body: some View {
@@ -705,6 +713,7 @@ private struct BeautifyPanel: View {
                        systemImage: "square.and.arrow.down", action: save)
                 Button("Save As…", systemImage: "square.and.arrow.down.on.square", action: saveAs)
                 Button("Copy Text (OCR)", systemImage: "text.viewfinder", action: copyText)
+                Button("Pin to Screen", systemImage: "pin", action: pin)
                 Button("Show in Finder", systemImage: "folder", action: showInFinder)
             }
             .buttonStyle(.borderless)
