@@ -33,7 +33,8 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
   - Owns `settings`, `content`, `history`; private `recorder`, `pendingOutputURL`, `areaSelector`, `frameOverlay`.
   - `refreshContent` L49, `requestScreenPermission` L56, `fixSelections` L63 (keeps selected display/window/app valid).
   - Public actions: `performPrimaryAction` L77, `toggleRecording` L81, `takeScreenshot` L89,
-    `quickScreenshot` L96, `captureArea` L145, `captureFullPage` L151.
+    `quickScreenshot` L96, `captureArea` L145, `captureFullPage` L151, `captureText` (area → OCR, no file),
+    `copyRecognizedText(from:displayID:)` (OCR → clipboard → `ui.showTextToast`; also used by History).
   - `captureQuickScreenshot` L104 (resolve display under mouse → capture → `finalImage` → clipboard → sound →
     write → toast).
   - `finalImage(for:)` L134 (auto-Beautify via `EditorRenderer.render`), `shutterSound` L139.
@@ -71,8 +72,8 @@ image format, full-page quality, clipboard/post-capture/editor/sound toggles, `a
 
 ### `Models/Shortcut.swift` (95)
 `struct Shortcut` (keyCode, modifiers, key; `carbonModifiers`, `displayString`, `init?(event:)`) L5.
-`enum ShortcutAction` (screenshot, quickScreenshot, areaScreenshot, fullPageScreenshot, toggleRecording) L60
-with `title`, `detail`, `defaultShortcut` (⌃⌥⌘ S/D/A/F/R).
+`enum ShortcutAction` (screenshot, quickScreenshot, areaScreenshot, fullPageScreenshot, captureText, toggleRecording) L60
+with `title`, `detail`, `defaultShortcut` (⌃⌥⌘ S/D/A/F/T/R).
 
 ## Services/
 
@@ -127,6 +128,10 @@ q=0.9 lossy, nonisolated), `copyToPasteboard`.
 `@Observable BackgroundLibrary.shared`: Beautify background images copied to
 `~/Library/Application Support/ScreenCapture/Backgrounds/<UUID>.<ext>`; `names`, `importImage(from:)`,
 `remove(_:)`, `image(named:)` (NSCache).
+
+### `Services/TextRecognizer.swift` (18)
+`TextRecognizer.recognize(_ CGImage) async throws -> String` — Vision `RecognizeTextRequest` (accurate, auto language,
+language correction), lines joined by `\n`, empty when no text.
 
 ### `Services/ThumbnailCache.swift` (54)
 `ThumbnailCache.shared`: QuickLook thumbnails in `NSCache` (limit 400, keyed by path+mtime+size), video `duration(for:)`.

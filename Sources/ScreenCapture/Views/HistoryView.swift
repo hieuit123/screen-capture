@@ -14,6 +14,7 @@ struct HistoryView: View {
     let history: HistoryStore
     @Bindable var state: HistoryViewState
     let onEdit: (CaptureItem) -> Void
+    let onCopyText: (CaptureItem) -> Void
 
     private var items: [CaptureItem] {
         let all = history.items(for: state.kind)
@@ -117,6 +118,9 @@ struct HistoryView: View {
         Button("Open") { NSWorkspace.shared.open(item.url) }
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
         Button("Copy") { copy(item) }
+        if item.kind == .screenshot {
+            Button("Copy Text") { onCopyText(item) }
+        }
         ShareLink(item: item.url)
         Divider()
         Button("Move to Trash", role: .destructive) {

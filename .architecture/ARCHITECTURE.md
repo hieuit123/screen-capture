@@ -26,7 +26,7 @@
 ## 2. Key abstractions
 
 - **`AppUI` protocol** (AppModel.swift:7) — the model→shell boundary: `dismissPopover`, `phaseDidChange`,
-  `showPostCapture`, `openEditor(url:image:beautify:)`, `showQuickCaptureToast`, `openHistory`, `showError`,
+  `showPostCapture`, `openEditor(url:image:beautify:)`, `showQuickCaptureToast`, `showTextToast`, `openHistory`, `showError`,
   `isPopoverShown`. New UI side effects go here and are implemented in `AppDelegate`.
 - **`AppModel.Phase`**: `idle → preparing → recording(since:) → finishing → idle`. Screenshots are allowed while
   recording (they only set `preparing` if started from idle). `didSet` calls `ui.phaseDidChange()`

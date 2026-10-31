@@ -96,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         menu.addItem(item("Quick Screenshot", shortcut: .quickScreenshot, action: #selector(menuQuickScreenshot)))
         menu.addItem(item("Capture Area", shortcut: .areaScreenshot, action: #selector(menuCaptureArea)))
         menu.addItem(item("Full-Page Screenshot (Chrome)", shortcut: .fullPageScreenshot, action: #selector(menuFullPage)))
+        menu.addItem(item("Capture Text (OCR)", shortcut: .captureText, action: #selector(menuCaptureText)))
         menu.addItem(.separator())
         menu.addItem(item("Recording History…", action: #selector(menuRecordingHistory)))
         menu.addItem(item("Screenshot History…", action: #selector(menuScreenshotHistory)))
@@ -127,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     @objc private func menuScreenshot() { model.takeScreenshot() }
     @objc private func menuCaptureArea() { model.captureArea() }
     @objc private func menuFullPage() { model.captureFullPage() }
+    @objc private func menuCaptureText() { model.captureText() }
     @objc private func menuQuickScreenshot() { model.quickScreenshot() }
     @objc private func menuSettings() { openSettings() }
     @objc func showSettings(_ sender: Any?) { openSettings() }
@@ -178,6 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             case .quickScreenshot: model.quickScreenshot()
             case .areaScreenshot: model.captureArea()
             case .fullPageScreenshot: model.captureFullPage()
+            case .captureText: model.captureText()
             case .toggleRecording: model.toggleRecording()
             }
         }
@@ -249,6 +252,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         }
     }
 
+    func showTextToast(thumbnail: CGImage, text: String, on displayID: CGDirectDisplayID) {
+        let firstLine = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+        let subtitle = firstLine.count > 48 ? String(firstLine.prefix(47)) + "…" : firstLine
+        quickToast.show(image: thumbnail, title: text.isEmpty ? "No text found" : "Text copied",
+                        subtitle: text.isEmpty ? "Try a larger or sharper area" : subtitle, on: displayID) {}
+    }
+
     func openEditor(url: URL, image: CGImage?, beautify: Bool) {
         dismissPopover()
         if let existing = editorControllers.first(where: { $0.editorDocument.fileURL == url }) {
@@ -286,12 +296,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         if historyController == nil {
             let controller = HistoryWindowController(history: model.history) { [weak self] item in
                 self?.openEditor(url: item.url, image: nil, beautify: false)
+            } onCopyText: { [weak self] item in
+                self?.copyText(from: item.url)
             }
             controller.onClose = { [weak self] in self?.updateActivationPolicySoon() }
             historyController = controller
         }
         model.history.reload()
         historyController?.show(kind: kind, select: url)
+    }
+
+    private func copyText(from url: URL) {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            showError("Couldn't open \(url.lastPathComponent).")
+            return
+        }
+        let displayID = historyController?.window?.screen?.displayID ?? CGMainDisplayID()
+        Task { await model.copyRecognizedText(from: image, displayID: displayID) }
     }
 
     func showError(_ message: String) {
