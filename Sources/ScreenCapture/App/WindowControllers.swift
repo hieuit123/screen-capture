@@ -175,17 +175,152 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 }
 
-/// Brief HUD at the bottom of the captured screen after a Quick Screenshot.
+/// Keeps floating preview panels stacked in a column on each screen, newest at the bottom.
+/// Each panel has its own auto-dismiss timer, paused while the pointer is over it.
+@MainActor
+final class FloatingPanelStack {
+    enum Anchor { case bottomTrailing, bottomCenter }
+
+    struct Style {
+        var anchor: Anchor
+        /// Distance from the bottom (and trailing edge for `.bottomTrailing`) of the visible frame.
+        var margin: CGFloat
+        var spacing: CGFloat = 10
+        var maxCount = 3
+        var dismissDelay: Duration
+        var hoverDismissDelay: Duration
+        /// Where a new panel starts before sliding into place.
+        var entryOffset: CGSize
+        var fadeInDuration: TimeInterval
+        var fadeOutDuration: TimeInterval
+    }
+
+    private final class Entry {
+        let id: UUID
+        let panel: NSPanel
+        let displayID: CGDirectDisplayID?
+        var dismissTask: Task<Void, Never>?
+        var isHovered = false
+
+        init(id: UUID, panel: NSPanel, displayID: CGDirectDisplayID?) {
+            self.id = id
+            self.panel = panel
+            self.displayID = displayID
+        }
+    }
+
+    private let style: Style
+    /// Oldest first.
+    private var entries: [Entry] = []
+
+    init(style: Style) {
+        self.style = style
+    }
+
+    func push(_ panel: NSPanel, id: UUID, on screen: NSScreen) {
+        let entry = Entry(id: id, panel: panel, displayID: screen.displayID)
+        entries.append(entry)
+        let sameScreen = entries.filter { $0.displayID == entry.displayID }
+        for old in sameScreen.dropLast(style.maxCount) {
+            close(old.id, animated: true, relayout: false)
+        }
+
+        let targets = layout(for: entry.displayID)
+        let finalFrame = targets[id] ?? panel.frame
+        panel.setFrame(finalFrame.offsetBy(dx: style.entryOffset.width, dy: style.entryOffset.height), display: false)
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = style.fadeInDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().setFrame(finalFrame, display: true)
+            panel.animator().alphaValue = 1
+            for other in entries where other !== entry {
+                if let frame = targets[other.id] { other.panel.animator().setFrame(frame, display: true) }
+            }
+        }
+        scheduleDismiss(entry, after: style.dismissDelay)
+    }
+
+    func setHovered(_ id: UUID, _ hovering: Bool) {
+        guard let entry = entries.first(where: { $0.id == id }) else { return }
+        entry.isHovered = hovering
+        if hovering {
+            entry.dismissTask?.cancel()
+        } else {
+            scheduleDismiss(entry, after: style.hoverDismissDelay)
+        }
+    }
+
+    func close(_ id: UUID, animated: Bool = true) {
+        close(id, animated: animated, relayout: true)
+    }
+
+    private func close(_ id: UUID, animated: Bool, relayout: Bool) {
+        guard let index = entries.firstIndex(where: { $0.id == id }) else { return }
+        let entry = entries.remove(at: index)
+        entry.dismissTask?.cancel()
+        let panel = entry.panel
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = style.fadeOutDuration
+                panel.animator().alphaValue = 0
+            } completionHandler: {
+                MainActor.assumeIsolated { panel.orderOut(nil) }
+            }
+        } else {
+            panel.orderOut(nil)
+        }
+        guard relayout else { return }
+        let targets = layout(for: entry.displayID)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            for other in entries {
+                if let frame = targets[other.id] { other.panel.animator().setFrame(frame, display: true) }
+            }
+        }
+    }
+
+    /// Target frames for the panels on one screen: newest at the bottom, older ones above.
+    private func layout(for displayID: CGDirectDisplayID?) -> [UUID: NSRect] {
+        let screen = NSScreen.screens.first { $0.displayID == displayID } ?? NSScreen.main ?? NSScreen.screens[0]
+        let visible = screen.visibleFrame
+        var y = visible.minY + style.margin
+        var frames: [UUID: NSRect] = [:]
+        for entry in entries.reversed() where entry.displayID == displayID {
+            let size = entry.panel.frame.size
+            let x = switch style.anchor {
+            case .bottomTrailing: visible.maxX - size.width - style.margin
+            case .bottomCenter: visible.midX - size.width / 2
+            }
+            frames[entry.id] = NSRect(x: x, y: y, width: size.width, height: size.height)
+            y += size.height + style.spacing
+        }
+        return frames
+    }
+
+    private func scheduleDismiss(_ entry: Entry, after delay: Duration) {
+        entry.dismissTask?.cancel()
+        let id = entry.id
+        entry.dismissTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self,
+                  let entry = self.entries.first(where: { $0.id == id }), !entry.isHovered else { return }
+            self.close(id)
+        }
+    }
+}
+
+/// Brief HUD at the bottom of the captured screen after a Quick Screenshot. Several stack up.
 @MainActor
 final class QuickCaptureToastController {
-    private var panel: NSPanel?
-    private var dismissTask: Task<Void, Never>?
-    private var isHovered = false
+    private let stack = FloatingPanelStack(style: .init(
+        anchor: .bottomCenter, margin: 40, dismissDelay: .seconds(2.4), hoverDismissDelay: .seconds(1.2),
+        entryOffset: CGSize(width: 0, height: -12), fadeInDuration: 0.22, fadeOutDuration: 0.25))
 
     func show(image: CGImage, title: String, subtitle: String, on displayID: CGDirectDisplayID,
               onClick: @escaping () -> Void) {
-        close(animated: false)
-
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.level = .statusBar
         panel.isOpaque = false
@@ -195,150 +330,65 @@ final class QuickCaptureToastController {
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
 
+        let id = UUID()
         let view = QuickCaptureToastView(
             image: NSImage(cgImage: image, size: .zero),
             title: title,
             subtitle: subtitle,
             onClick: { [weak self] in
-                self?.close(animated: true)
+                self?.stack.close(id)
                 onClick()
             },
-            onHoverChange: { [weak self] hovering in
-                self?.isHovered = hovering
-                if !hovering { self?.scheduleDismiss(after: .seconds(1.2)) }
-            })
+            onHoverChange: { [weak self] hovering in self?.stack.setHovered(id, hovering) })
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = [.intrinsicContentSize]
         panel.contentView = hosting
-        let size = hosting.fittingSize
+        panel.setContentSize(hosting.fittingSize)
 
         let screen = NSScreen.screens.first { $0.displayID == displayID } ?? NSScreen.main ?? NSScreen.screens[0]
-        let visible = screen.visibleFrame
-        let finalFrame = NSRect(x: visible.midX - size.width / 2, y: visible.minY + 40, width: size.width, height: size.height)
-        panel.setFrame(finalFrame.offsetBy(dx: 0, dy: -12), display: false)
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().setFrame(finalFrame, display: true)
-            panel.animator().alphaValue = 1
-        }
-
-        self.panel = panel
-        scheduleDismiss(after: .seconds(2.4))
-    }
-
-    private func scheduleDismiss(after delay: Duration) {
-        dismissTask?.cancel()
-        dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled, let self, !self.isHovered else { return }
-            self.close(animated: true)
-        }
-    }
-
-    func close(animated: Bool) {
-        dismissTask?.cancel()
-        guard let panel else { return }
-        self.panel = nil
-        isHovered = false
-        guard animated else {
-            panel.orderOut(nil)
-            return
-        }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25
-            panel.animator().alphaValue = 0
-        } completionHandler: {
-            MainActor.assumeIsolated { panel.orderOut(nil) }
-        }
+        stack.push(panel, id: id, on: screen)
     }
 }
 
 /// Non-activating floating panel in the bottom-right corner, like the system screenshot thumbnail.
+/// Several stack up, newest at the bottom.
 @MainActor
 final class PostCapturePanelController {
-    private var panel: NSPanel?
-    private var dismissTask: Task<Void, Never>?
-    private var isHovered = false
+    private let stack = FloatingPanelStack(style: .init(
+        anchor: .bottomTrailing, margin: 16, dismissDelay: .seconds(8), hoverDismissDelay: .seconds(8),
+        entryOffset: CGSize(width: 372, height: 0), fadeInDuration: 0.3, fadeOutDuration: 0.2))
 
     func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?) {
-        close(animated: false)
-
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                             backing: .buffered, defer: false)
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
+        let id = UUID()
         let view = PostCaptureView(
             item: item,
             openHistory: { [weak self] in
-                self?.close(animated: true)
+                self?.stack.close(id)
                 openHistory()
             },
             edit: edit.map { edit in { [weak self] in
-                self?.close(animated: true)
+                self?.stack.close(id)
                 edit()
             } },
-            close: { [weak self] in self?.close(animated: true) },
-            onHoverChange: { [weak self] hovering in
-                self?.isHovered = hovering
-                if !hovering { self?.scheduleDismiss() }
-            })
+            close: { [weak self] in self?.stack.close(id) },
+            onHoverChange: { [weak self] hovering in self?.stack.setHovered(id, hovering) })
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = [.intrinsicContentSize]
         panel.contentView = hosting
-        let size = hosting.fittingSize
+        panel.setContentSize(hosting.fittingSize)
 
-        let screen = NSScreen.main ?? NSScreen.screens.first
-        let visible = screen?.visibleFrame ?? .zero
-        let finalFrame = NSRect(x: visible.maxX - size.width - 16, y: visible.minY + 16,
-                                width: size.width, height: size.height)
-        panel.setFrame(finalFrame.offsetBy(dx: size.width + 32, dy: 0), display: false)
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.3
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().setFrame(finalFrame, display: true)
-            panel.animator().alphaValue = 1
-        }
-
-        self.panel = panel
-        scheduleDismiss()
-    }
-
-    private func scheduleDismiss() {
-        dismissTask?.cancel()
-        dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(8))
-            guard !Task.isCancelled, let self, !self.isHovered else { return }
-            self.close(animated: true)
-        }
-    }
-
-    func close(animated: Bool) {
-        dismissTask?.cancel()
-        guard let panel else { return }
-        self.panel = nil
-        isHovered = false
-        guard animated else {
-            panel.orderOut(nil)
-            return
-        }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            panel.animator().alphaValue = 0
-        } completionHandler: {
-            MainActor.assumeIsolated { panel.orderOut(nil) }
-        }
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        stack.push(panel, id: id, on: screen)
     }
 }
 

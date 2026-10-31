@@ -23,7 +23,7 @@ enum EditorRenderer {
         let imagePath = CGPath(roundedRect: layout.imageRect, cornerWidth: layout.cornerRadius,
                                cornerHeight: layout.cornerRadius, transform: nil)
         if beautify.enabled {
-            drawGradient(beautify.preset.colors, in: CGRect(origin: .zero, size: layout.canvasSize), context: ctx)
+            drawBackground(beautify.resolvedBackground, in: CGRect(origin: .zero, size: layout.canvasSize), context: ctx)
             if layout.shadowRadius > 0 {
                 ctx.saveGState()
                 // Shadow offsets are in device space (y-up), so a negative height points down.
@@ -57,13 +57,42 @@ enum EditorRenderer {
         ctx.restoreGState()
     }
 
-    static func drawGradient(_ colors: [NSColor], in rect: CGRect, context ctx: CGContext) {
+    static func drawBackground(_ background: ResolvedBackground, in rect: CGRect, context ctx: CGContext) {
+        switch background {
+        case .gradient(let colors, let direction):
+            drawGradient(colors, direction: direction, in: rect, context: ctx)
+        case .solid(let color):
+            ctx.saveGState()
+            ctx.setFillColor(color.cgColor)
+            ctx.fill(rect)
+            ctx.restoreGState()
+        case .image(let image):
+            ctx.saveGState()
+            ctx.clip(to: rect)
+            drawImage(image, in: aspectFillRect(for: CGSize(width: image.width, height: image.height), in: rect), context: ctx)
+            ctx.restoreGState()
+        }
+    }
+
+    /// Scales `size` to cover `rect`, centred. Shared with the SwiftUI preview.
+    nonisolated static func aspectFillRect(for size: CGSize, in rect: CGRect) -> CGRect {
+        guard size.width > 0, size.height > 0 else { return rect }
+        let scale = max(rect.width / size.width, rect.height / size.height)
+        let w = size.width * scale, h = size.height * scale
+        return CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h)
+    }
+
+    static func drawGradient(_ colors: [NSColor], direction: GradientDirection = .diagonalDown, in rect: CGRect,
+                             context ctx: CGContext) {
         guard let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB),
                                         colors: colors.map(\.cgColor) as CFArray, locations: nil) else { return }
+        let (start, end) = direction.points
         ctx.saveGState()
         ctx.clip(to: rect)
-        ctx.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: rect.minY),
-                               end: CGPoint(x: rect.maxX, y: rect.maxY), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+        ctx.drawLinearGradient(gradient,
+                               start: CGPoint(x: rect.minX + start.x * rect.width, y: rect.minY + start.y * rect.height),
+                               end: CGPoint(x: rect.minX + end.x * rect.width, y: rect.minY + end.y * rect.height),
+                               options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
         ctx.restoreGState()
     }
 

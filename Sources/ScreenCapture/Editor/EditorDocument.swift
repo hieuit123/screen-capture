@@ -408,16 +408,128 @@ enum AspectPreset: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum BackgroundKind: String, CaseIterable, Identifiable, Codable {
+    case preset, solid, gradient, image
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .preset: "Presets"
+        case .solid: "Solid"
+        case .gradient: "Gradient"
+        case .image: "Image"
+        }
+    }
+}
+
+/// An opaque sRGB colour that can be persisted.
+struct RGBColor: Codable, Equatable {
+    var hex: UInt32
+
+    init(hex: UInt32) { self.hex = hex }
+
+    init(_ color: NSColor) {
+        let rgb = color.usingColorSpace(.sRGB) ?? .black
+        func byte(_ v: CGFloat) -> UInt32 { UInt32((min(max(v, 0), 1) * 255).rounded()) }
+        hex = byte(rgb.redComponent) << 16 | byte(rgb.greenComponent) << 8 | byte(rgb.blueComponent)
+    }
+
+    var nsColor: NSColor { .hex(hex) }
+}
+
+enum GradientDirection: String, CaseIterable, Identifiable, Codable {
+    case diagonalDown, horizontal, vertical, diagonalUp
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .diagonalDown: "Diagonal down"
+        case .horizontal: "Horizontal"
+        case .vertical: "Vertical"
+        case .diagonalUp: "Diagonal up"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .diagonalDown: "arrow.down.right"
+        case .horizontal: "arrow.right"
+        case .vertical: "arrow.down"
+        case .diagonalUp: "arrow.up.right"
+        }
+    }
+    /// Start and end as unit points with a top-left origin.
+    var points: (start: CGPoint, end: CGPoint) {
+        switch self {
+        case .diagonalDown: (CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 1))
+        case .horizontal: (CGPoint(x: 0, y: 0.5), CGPoint(x: 1, y: 0.5))
+        case .vertical: (CGPoint(x: 0.5, y: 0), CGPoint(x: 0.5, y: 1))
+        case .diagonalUp: (CGPoint(x: 0, y: 1), CGPoint(x: 1, y: 0))
+        }
+    }
+}
+
+struct CustomGradient: Codable, Equatable {
+    var from = RGBColor(hex: 0x4A00E0)
+    var to = RGBColor(hex: 0xFF5F6D)
+    var direction: GradientDirection = .diagonalDown
+}
+
+/// What the background resolves to when drawn.
+enum ResolvedBackground {
+    case gradient([NSColor], GradientDirection)
+    case solid(NSColor)
+    case image(CGImage)
+}
+
 struct BeautifySettings: Equatable, Codable {
     var enabled = false
+    var background: BackgroundKind = .preset
     var presetID = 0
+    var solidColor = RGBColor(hex: 0x1E1E1E)
+    var gradient = CustomGradient()
+    /// File name inside `BackgroundLibrary`.
+    var imageName: String?
     /// Fractions of the image's longer side.
     var padding: CGFloat = 0.08
     var cornerRadius: CGFloat = 0.012
     var shadow = true
     var aspect: AspectPreset = .auto
 
+    init() {}
+
+    // Styles saved before custom backgrounds existed lack the newer keys.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = BeautifySettings()
+        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? defaults.enabled
+        background = try c.decodeIfPresent(BackgroundKind.self, forKey: .background) ?? defaults.background
+        presetID = try c.decodeIfPresent(Int.self, forKey: .presetID) ?? defaults.presetID
+        solidColor = try c.decodeIfPresent(RGBColor.self, forKey: .solidColor) ?? defaults.solidColor
+        gradient = try c.decodeIfPresent(CustomGradient.self, forKey: .gradient) ?? defaults.gradient
+        imageName = try c.decodeIfPresent(String.self, forKey: .imageName)
+        padding = try c.decodeIfPresent(CGFloat.self, forKey: .padding) ?? defaults.padding
+        cornerRadius = try c.decodeIfPresent(CGFloat.self, forKey: .cornerRadius) ?? defaults.cornerRadius
+        shadow = try c.decodeIfPresent(Bool.self, forKey: .shadow) ?? defaults.shadow
+        aspect = try c.decodeIfPresent(AspectPreset.self, forKey: .aspect) ?? defaults.aspect
+    }
+
     var preset: GradientPreset { GradientPreset.all.first { $0.id == presetID } ?? GradientPreset.all[0] }
+
+    /// The background to draw. A missing image falls back to the first preset.
+    @MainActor
+    var resolvedBackground: ResolvedBackground {
+        switch background {
+        case .preset:
+            return .gradient(preset.colors, .diagonalDown)
+        case .solid:
+            return .solid(solidColor.nsColor)
+        case .gradient:
+            return .gradient([gradient.from.nsColor, gradient.to.nsColor], gradient.direction)
+        case .image:
+            if let imageName, let image = BackgroundLibrary.shared.image(named: imageName) { return .image(image) }
+            return .gradient(GradientPreset.all[0].colors, .diagonalDown)
+        }
+    }
 
     /// The same style with Beautify switched on.
     var applied: BeautifySettings {
