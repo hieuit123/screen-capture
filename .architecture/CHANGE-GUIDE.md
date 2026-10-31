@@ -10,6 +10,7 @@
 | Change recording encoding / quality / audio | `Services/ScreenRecorder.swift` (`RecordingOptions`, `start`, `makeWriter`) | Keep writer state on `queue` only |
 | Change area selection UX | `Services/AreaSelector.swift` (`SelectionView`) | Recording frame: `RecordingFrameOverlay` |
 | Full-page capture bugs | `Services/FullPageCapture.swift` (`Scripts` JS, `locateMarker`, loop, `stitch`) | Always keep `Scripts.restore` in `defer` |
+| OCR / Capture Text | `Services/TextRecognizer.swift`; flow `AppModel.captureText`/`copyRecognizedText`; editor `EditorView.copyText`; History `onCopyText` (AppDelegate → HistoryWindowController → HistoryView) | Toast via `AppUI.showTextToast` |
 | File naming / folders | `Services/StorageManager.swift` | History file filters: `HistoryStore.scan` |
 | History window UI | `Views/HistoryView.swift`, window in `App/WindowControllers.swift` | Thumbnails: `ThumbnailCache`, `SharedViews` |
 | Menu bar panel UI | `Views/MenuView.swift`; status item/right-click menu in `App/AppDelegate.swift` | |

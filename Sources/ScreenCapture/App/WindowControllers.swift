@@ -6,7 +6,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     let state = HistoryViewState()
     var onClose: (() -> Void)?
 
-    init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void) {
+    init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void, onCopyText: @escaping (CaptureItem) -> Void) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1040, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -15,7 +15,8 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
 
-        let hosting = NSHostingController(rootView: HistoryView(history: history, state: state, onEdit: onEdit))
+        let hosting = NSHostingController(rootView: HistoryView(history: history, state: state, onEdit: onEdit,
+                                                                onCopyText: onCopyText))
         hosting.sceneBridgingOptions = [.toolbars, .title]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting

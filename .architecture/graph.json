@@ -5,7 +5,7 @@
   {
    "id": "App/AppDelegate.swift",
    "layer": "App",
-   "loc": 359,
+   "loc": 381,
    "types": [
     "AppDelegate",
     "MainMenu"
@@ -17,7 +17,7 @@
   {
    "id": "App/AppModel.swift",
    "layer": "App",
-   "loc": 272,
+   "loc": 307,
    "types": [
     "AppUI",
     "AppModel"
@@ -27,7 +27,7 @@
   {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 402,
+   "loc": 403,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -80,7 +80,7 @@
   {
    "id": "Editor/EditorView.swift",
    "layer": "Editor",
-   "loc": 858,
+   "loc": 884,
    "types": [
     "EditorFinishAction",
     "EditorView",
@@ -122,7 +122,7 @@
   {
    "id": "Models/Shortcut.swift",
    "layer": "Models",
-   "loc": 95,
+   "loc": 98,
    "types": [
     "Shortcut",
     "ShortcutAction"
@@ -235,6 +235,15 @@
    "extends": []
   },
   {
+   "id": "Services/TextRecognizer.swift",
+   "layer": "Services",
+   "loc": 18,
+   "types": [
+    "TextRecognizer"
+   ],
+   "extends": []
+  },
+  {
    "id": "Services/ThumbnailCache.swift",
    "layer": "Services",
    "loc": 54,
@@ -248,7 +257,7 @@
   {
    "id": "Views/HistoryView.swift",
    "layer": "Views",
-   "loc": 313,
+   "loc": 317,
    "types": [
     "HistoryViewState",
     "HistoryView"
@@ -458,6 +467,13 @@
    ]
   },
   {
+   "from": "App/AppModel.swift",
+   "to": "Services/TextRecognizer.swift",
+   "via": [
+    "TextRecognizer"
+   ]
+  },
+  {
    "from": "App/WindowControllers.swift",
    "to": "Editor/EditorDocument.swift",
    "via": [
@@ -606,6 +622,13 @@
    "to": "Services/ScreenshotService.swift",
    "via": [
     "ScreenshotService"
+   ]
+  },
+  {
+   "from": "Editor/EditorView.swift",
+   "to": "Services/TextRecognizer.swift",
+   "via": [
+    "TextRecognizer"
    ]
   },
   {

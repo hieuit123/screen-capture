@@ -11,6 +11,8 @@ protocol AppUI: AnyObject {
     /// `beautify`: start with the default Beautify style switched on (for fresh, un-beautified captures).
     func openEditor(url: URL, image: CGImage?, beautify: Bool)
     func showQuickCaptureToast(url: URL, image: CGImage, thumbnail: CGImage, on displayID: CGDirectDisplayID)
+    /// Confirms an OCR copy. `text` is empty when nothing was recognized.
+    func showTextToast(thumbnail: CGImage, text: String, on displayID: CGDirectDisplayID)
     var isPopoverShown: Bool { get }
     func openHistory(_ kind: CaptureKind, select url: URL?)
     func showError(_ message: String)
@@ -155,6 +157,39 @@ final class AppModel {
                 ui?.dismissPopover()
                 return try await FullPageCapture.capture(scale: settings.fullPageQuality.scale)
             }
+        }
+    }
+
+    /// Drag an area and copy the text in it (OCR). Nothing is saved.
+    func captureText() {
+        guard phase == .idle || phase.isRecording else { return }
+        Task {
+            let wasIdle = phase == .idle
+            if wasIdle { phase = .preparing }
+            defer { if wasIdle { phase = .idle } }
+            do {
+                let target = try await resolveTarget(source: .area, mode: .screenshot)
+                let image = try await ScreenshotService.capture(target: target, showsCursor: false)
+                await copyRecognizedText(from: image, displayID: target.areaSelection?.displayID ?? CGMainDisplayID())
+            } catch CaptureError.cancelled {
+                return
+            } catch {
+                ui?.showError(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Recognizes the text in the image, copies it and confirms with a toast.
+    func copyRecognizedText(from image: CGImage, displayID: CGDirectDisplayID) async {
+        do {
+            let text = try await TextRecognizer.recognize(image)
+            if !text.isEmpty {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            }
+            ui?.showTextToast(thumbnail: image, text: text, on: displayID)
+        } catch {
+            ui?.showError("Couldn't recognize text: \(error.localizedDescription)")
         }
     }
 

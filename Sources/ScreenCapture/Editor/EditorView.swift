@@ -29,7 +29,8 @@ struct EditorView: View {
         .frame(minWidth: 760, minHeight: 480)
         .toolbar { toolbarContent }
         .inspector(isPresented: $showInspector) {
-            BeautifyPanel(doc: doc, settings: settings, copy: copy, save: save, saveAs: saveAs, showInFinder: showInFinder)
+            BeautifyPanel(doc: doc, settings: settings, copy: copy, save: save, saveAs: saveAs, copyText: copyText,
+                          showInFinder: showInFinder)
                 .inspectorColumnWidth(min: 250, ideal: 280, max: 340)
         }
         .overlay(alignment: .bottom) {
@@ -125,6 +126,25 @@ struct EditorView: View {
                 flash("Saved \(url.lastPathComponent)")
             } catch {
                 flash("Save failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// OCRs the screenshot (without annotations) and copies the text.
+    private func copyText() {
+        let image = doc.image
+        Task {
+            do {
+                let text = try await TextRecognizer.recognize(image)
+                guard !text.isEmpty else {
+                    flash("No text found")
+                    return
+                }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                flash("Text copied")
+            } catch {
+                flash("Couldn't recognize text")
             }
         }
     }
@@ -656,6 +676,7 @@ private struct BeautifyPanel: View {
     let copy: () -> Void
     let save: () -> Void
     let saveAs: () -> Void
+    let copyText: () -> Void
     let showInFinder: () -> Void
 
     var body: some View {
@@ -683,6 +704,7 @@ private struct BeautifyPanel: View {
                 Button(settings.closeEditorAfterCopyOrSave ? "Save & Close" : "Save",
                        systemImage: "square.and.arrow.down", action: save)
                 Button("Save As…", systemImage: "square.and.arrow.down.on.square", action: saveAs)
+                Button("Copy Text (OCR)", systemImage: "text.viewfinder", action: copyText)
                 Button("Show in Finder", systemImage: "folder", action: showInFinder)
             }
             .buttonStyle(.borderless)
