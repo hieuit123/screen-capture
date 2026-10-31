@@ -19,7 +19,7 @@ the 1–3 Swift files that a task actually touches.
   AVFoundation (AVAssetWriter), CoreGraphics, Carbon hot keys, AppleScript (Chrome full-page). No 3rd-party deps.
 - **No tests**, no Xcode project. Build: `./scripts/build_app.sh` → `build/ScreenCapture.app`
   (`CONFIG=debug` for debug). DMG: `./scripts/make_dmg.sh`. Version lives in `Resources/Info.plist`
-  (`CFBundleShortVersionString`, currently 1.4.7).
+  (`CFBundleShortVersionString`, currently 1.5.0).
 - **Source root:** `Sources/ScreenCapture/` (26 files, ~6.7k LOC). Biggest: `Editor/EditorDocument.swift` (1093),
   `Editor/EditorView.swift` (858), `Views/MenuView.swift` (515), `Services/AreaSelector.swift` (470).
 
