@@ -10,7 +10,13 @@ final class TrimWindowController: NSWindowController, NSWindowDelegate {
     var onClose: ((TrimWindowController) -> Void)?
 
     private let playerView = AVPlayerView()
-    private var isTrimming = false
+    /// Re-enters trim mode after Cancel (the window then works as a player).
+    private let trimButton = NSButton(title: "Trim", image: NSImage(systemSymbolName: "timeline.selection",
+                                                                   accessibilityDescription: nil)!,
+                                      target: nil, action: nil)
+    private var isTrimming = false {
+        didSet { trimButton.isHidden = isTrimming }
+    }
     private let title: String
 
     init(url: URL) {
@@ -26,14 +32,37 @@ final class TrimWindowController: NSWindowController, NSWindowDelegate {
         window.contentMinSize = NSSize(width: 520, height: 360)
         playerView.controlsStyle = .inline
         playerView.player = AVPlayer(url: url)
-        window.contentView = playerView
+
+        let container = NSView()
+        playerView.translatesAutoresizingMaskIntoConstraints = false
+        trimButton.translatesAutoresizingMaskIntoConstraints = false
+        trimButton.bezelStyle = .glass
+        trimButton.controlSize = .large
+        trimButton.keyEquivalent = "t"
+        trimButton.keyEquivalentModifierMask = .command
+        trimButton.toolTip = "Trim the recording (⌘T)"
+        container.addSubview(playerView)
+        container.addSubview(trimButton)
+        NSLayoutConstraint.activate([
+            playerView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            playerView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            playerView.topAnchor.constraint(equalTo: container.topAnchor),
+            playerView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            trimButton.topAnchor.constraint(equalTo: container.topAnchor, constant: 14),
+            trimButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -14),
+        ])
+        window.contentView = container
         window.center()
         super.init(window: window)
         window.delegate = self
+        trimButton.target = self
+        trimButton.action = #selector(trimPressed)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func trimPressed() { startTrimming() }
 
     func present() {
         NSApp.setActivationPolicy(.regular)
@@ -64,15 +93,14 @@ final class TrimWindowController: NSWindowController, NSWindowDelegate {
 
     private func trimmingEnded(_ result: AVPlayerViewTrimResult) {
         isTrimming = false
-        guard result == .okButton, let player = playerView.player, let item = player.currentItem else {
-            close()
-            return
-        }
+        // Cancel: keep the window as a player; the Trim button starts over.
+        guard result == .okButton, let player = playerView.player, let item = player.currentItem else { return }
         let start = item.reversePlaybackEndTime.isNumeric ? item.reversePlaybackEndTime : .zero
         let end = item.forwardPlaybackEndTime.isNumeric ? item.forwardPlaybackEndTime : item.duration
         // Release the file before it's replaced.
         player.pause()
         player.replaceCurrentItem(with: nil)
+        trimButton.isHidden = true
         window?.title = "Saving…"
         Task {
             do {

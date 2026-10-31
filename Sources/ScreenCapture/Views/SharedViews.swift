@@ -10,6 +10,15 @@ struct ThumbnailView: View {
 
     @State private var image: NSImage?
 
+    init(url: URL, version: Date = .distantPast, maxPixel: CGFloat = 320, contentMode: ContentMode = .fill) {
+        self.url = url
+        self.version = version
+        self.maxPixel = maxPixel
+        self.contentMode = contentMode
+        // Cached thumbnails show on the first frame instead of flashing a spinner.
+        _image = State(initialValue: ThumbnailCache.shared.cachedThumbnail(for: url, version: version, maxPixel: maxPixel))
+    }
+
     var body: some View {
         ZStack {
             Rectangle().fill(.quaternary)
@@ -25,7 +34,7 @@ struct ThumbnailView: View {
         .clipped()
         .task(id: "\(url.path)#\(version.timeIntervalSince1970)") {
             if let cached = ThumbnailCache.shared.cachedThumbnail(for: url, version: version, maxPixel: maxPixel) {
-                image = cached
+                if image !== cached { image = cached }
                 return
             }
             let loaded = await ThumbnailCache.shared.thumbnail(for: url, version: version, maxPixel: maxPixel)

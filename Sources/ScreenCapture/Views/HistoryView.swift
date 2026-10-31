@@ -17,6 +17,8 @@ struct HistoryView: View {
     let onCopyText: (CaptureItem) -> Void
     let onPin: (CaptureItem) -> Void
     let onTrim: (CaptureItem) -> Void
+    /// Recordings open in the trim window.
+    let onOpenRecording: (CaptureItem) -> Void
 
     private var items: [CaptureItem] {
         let all = history.items(for: state.kind)
@@ -52,7 +54,8 @@ struct HistoryView: View {
                 }
             }
             .inspector(isPresented: $state.showInspector) {
-                InspectorView(item: selectedItems.count == 1 ? selectedItems.first : nil, history: history, onEdit: onEdit)
+                InspectorView(item: selectedItems.count == 1 ? selectedItems.first : nil, history: history, onEdit: onEdit,
+                              onOpenRecording: onOpenRecording)
                     .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
             }
             .onChange(of: state.kind) { state.selection = [] }
@@ -109,17 +112,19 @@ struct HistoryView: View {
     }
 
     private func open(_ item: CaptureItem) {
-        if item.kind == .screenshot { onEdit(item) } else { NSWorkspace.shared.open(item.url) }
+        if item.kind == .screenshot { onEdit(item) } else { onOpenRecording(item) }
     }
 
     @ViewBuilder
     private func contextMenu(for item: CaptureItem) -> some View {
         if item.kind == .screenshot {
             Button("Edit…") { onEdit(item) }
+            Button("Open") { NSWorkspace.shared.open(item.url) }
         } else {
+            Button("Open") { onOpenRecording(item) }
             Button("Trim…") { onTrim(item) }
+            Button("Open in Default App") { NSWorkspace.shared.open(item.url) }
         }
-        Button("Open") { NSWorkspace.shared.open(item.url) }
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
         Button("Copy") { copy(item) }
         if item.kind == .screenshot {
@@ -207,6 +212,7 @@ private struct InspectorView: View {
     let item: CaptureItem?
     let history: HistoryStore
     let onEdit: (CaptureItem) -> Void
+    let onOpenRecording: (CaptureItem) -> Void
 
     var body: some View {
         if let item {
@@ -229,7 +235,9 @@ private struct InspectorView: View {
                             .buttonStyle(.glassProminent)
                         }
                         HStack {
-                            Button("Open", systemImage: "arrow.up.forward.app") { NSWorkspace.shared.open(item.url) }
+                            Button("Open", systemImage: "arrow.up.forward.app") {
+                                if item.kind == .recording { onOpenRecording(item) } else { NSWorkspace.shared.open(item.url) }
+                            }
                             Button("Show in Finder", systemImage: "folder") {
                                 NSWorkspace.shared.activateFileViewerSelecting([item.url])
                             }

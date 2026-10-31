@@ -7,6 +7,8 @@ struct PostCaptureView: View {
     let edit: (() -> Void)?
     let trim: (() -> Void)?
     let pin: (() -> Void)?
+    /// Opens the capture (recordings open in the trim window).
+    let open: () -> Void
     let close: () -> Void
     let onHoverChange: (Bool) -> Void
 
@@ -43,7 +45,7 @@ struct PostCaptureView: View {
                 .overlay(alignment: .bottomTrailing) {
                     if item.kind == .recording { DurationBadge(url: item.url, version: item.modified).padding(6) }
                 }
-                .onTapGesture { NSWorkspace.shared.open(item.url) }
+                .onTapGesture(perform: open)
                 .draggable(item.url)
                 .help("Click to open · Drag to share")
 
@@ -60,10 +62,7 @@ struct PostCaptureView: View {
                 if let trim {
                     Button("Trim", systemImage: "timeline.selection", action: trim)
                 }
-                Button("Open", systemImage: "arrow.up.forward.app") {
-                    NSWorkspace.shared.open(item.url)
-                    close()
-                }
+                Button("Open", systemImage: "arrow.up.forward.app", action: open)
                 Button("Finder", systemImage: "folder") {
                     NSWorkspace.shared.activateFileViewerSelecting([item.url])
                     close()
@@ -84,11 +83,16 @@ struct PostCaptureView: View {
             .buttonStyle(.glassProminent)
             .controlSize(.regular)
         }
-        .padding(14)
+        .padding(16)
         .frame(width: 340)
-        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .shadow(color: .black.opacity(0.22), radius: 12, y: 4)
         .onHover(perform: onHoverChange)
+        // Transparent margin so the glass rim and shadow aren't clipped by the panel.
+        .padding(Self.outerMargin)
     }
+
+    static let outerMargin: CGFloat = 14
 }
 
 /// Small confirmation shown after a Quick Screenshot.

@@ -26,17 +26,19 @@ struct MenuView: View {
                 kindPicker(selection: $settings.kind)
                 SourcePicker(selection: $settings.source)
                 TargetPicker(model: model)
-                Group {
-                    if settings.kind == .recording {
-                        RecordingOptionsView(settings: settings, content: model.content)
-                    } else {
-                        ScreenshotOptionsView(settings: settings)
-                    }
+                // Both panels stay alive and are collapsed instead of rebuilt: recreating their AppKit-backed
+                // controls on every tab switch blocked the main thread for 50–90 ms.
+                VStack(spacing: 0) {
+                    RecordingOptionsView(settings: settings, content: model.content)
+                        .collapsed(settings.kind != .recording)
+                    ScreenshotOptionsView(settings: settings)
+                        .collapsed(settings.kind != .screenshot)
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                actionButton
-                if settings.kind == .screenshot {
+                VStack(spacing: 0) {
+                    actionButton
                     fullPageButton
+                        .padding(.top, 14)
+                        .collapsed(settings.kind != .screenshot)
                 }
             }
 
@@ -49,7 +51,6 @@ struct MenuView: View {
         }
         .padding(16)
         .frame(width: 360)
-        .animation(.snappy(duration: 0.25), value: settings.kind)
         .animation(.snappy(duration: 0.25), value: settings.source)
         .task { await model.refreshContent() }
     }
@@ -110,6 +111,8 @@ struct MenuView: View {
         }
         .padding(3)
         .background(.quaternary.opacity(0.7), in: .capsule)
+        // Only the highlight slides; the panel's height changes instantly, like the popover itself.
+        .animation(.snappy(duration: 0.25), value: selection.wrappedValue)
     }
 
     private var actionButton: some View {
@@ -508,6 +511,15 @@ private struct ToggleRow: View {
 }
 
 private extension View {
+    /// Hides a view without removing it from the hierarchy, so its controls aren't recreated when shown again.
+    func collapsed(_ isCollapsed: Bool) -> some View {
+        frame(height: isCollapsed ? 0 : nil, alignment: .top)
+            .clipped()
+            .opacity(isCollapsed ? 0 : 1)
+            .allowsHitTesting(!isCollapsed)
+            .accessibilityHidden(isCollapsed)
+    }
+
     func optionCard() -> some View {
         padding(12)
             .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: 14))

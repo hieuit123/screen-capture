@@ -7,7 +7,8 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
 
     init(history: HistoryStore, onEdit: @escaping (CaptureItem) -> Void, onCopyText: @escaping (CaptureItem) -> Void,
-         onPin: @escaping (CaptureItem) -> Void, onTrim: @escaping (CaptureItem) -> Void) {
+         onPin: @escaping (CaptureItem) -> Void, onTrim: @escaping (CaptureItem) -> Void,
+         onOpenRecording: @escaping (CaptureItem) -> Void) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1040, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -17,7 +18,8 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = false
 
         let hosting = NSHostingController(rootView: HistoryView(history: history, state: state, onEdit: onEdit,
-                                                                onCopyText: onCopyText, onPin: onPin, onTrim: onTrim))
+                                                                onCopyText: onCopyText, onPin: onPin, onTrim: onTrim,
+                                                                onOpenRecording: onOpenRecording))
         hosting.sceneBridgingOptions = [.toolbars, .title]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting
@@ -360,18 +362,22 @@ final class QuickCaptureToastController {
 /// Several stack up, newest at the bottom.
 @MainActor
 final class PostCapturePanelController {
+    // The view has a transparent `outerMargin` around the card: the visible card sits 20 pt from the screen
+    // edges, and stacked cards are 10 pt apart.
     private let stack = FloatingPanelStack(style: .init(
-        anchor: .bottomTrailing, margin: 16, dismissDelay: .seconds(8), hoverDismissDelay: .seconds(8),
-        entryOffset: CGSize(width: 372, height: 0), fadeInDuration: 0.3, fadeOutDuration: 0.2))
+        anchor: .bottomTrailing, margin: 20 - PostCaptureView.outerMargin,
+        spacing: 10 - 2 * PostCaptureView.outerMargin, dismissDelay: .seconds(8), hoverDismissDelay: .seconds(8),
+        entryOffset: CGSize(width: 380, height: 0), fadeInDuration: 0.3, fadeOutDuration: 0.2))
 
     func show(item: CaptureItem, openHistory: @escaping () -> Void, edit: (() -> Void)?, trim: (() -> Void)?,
-              pin: (() -> Void)?) {
+              pin: (() -> Void)?, open: @escaping () -> Void) {
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                             backing: .buffered, defer: false)
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        // The card draws its own rounded shadow; the window shadow would be rectangular.
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -395,6 +401,10 @@ final class PostCapturePanelController {
                 self?.stack.close(id)
                 pin()
             } },
+            open: { [weak self] in
+                self?.stack.close(id)
+                open()
+            },
             close: { [weak self] in self?.stack.close(id) },
             onHoverChange: { [weak self] hovering in self?.stack.setHovered(id, hovering) })
         let hosting = NSHostingView(rootView: view)

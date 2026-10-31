@@ -205,8 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         if item.kind == .screenshot {
             openEditor(url: item.url, image: nil, beautify: false)
         } else {
-            dismissPopover()
-            NSWorkspace.shared.open(item.url)
+            openTrimmer(url: item.url)
         }
     }
 
@@ -256,7 +255,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
         let trim: (() -> Void)? = item.kind == .recording ? { [weak self] in self?.openTrimmer(url: item.url) } : nil
         postCapture.show(item: item, openHistory: { [weak self] in
             self?.openHistory(item.kind, select: item.url)
-        }, edit: edit, trim: trim, pin: pin)
+        }, edit: edit, trim: trim, pin: pin) { [weak self] in
+            if item.kind == .recording {
+                self?.openTrimmer(url: item.url)
+            } else {
+                NSWorkspace.shared.open(item.url)
+            }
+        }
     }
 
     func openTrimmer(url: URL) {
@@ -358,6 +363,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
             } onPin: { [weak self] item in
                 self?.pinFile(item.url)
             } onTrim: { [weak self] item in
+                self?.openTrimmer(url: item.url)
+            } onOpenRecording: { [weak self] item in
                 self?.openTrimmer(url: item.url)
             }
             controller.onClose = { [weak self] in self?.updateActivationPolicySoon() }

@@ -68,7 +68,9 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
 ### `App/TrimWindowController.swift` (104)
 `TrimWindowController`: window with `AVPlayerView`; waits for `canBeginTrimming`, `await beginTrimming()`;
 OK → range from `reversePlaybackEndTime`/`forwardPlaybackEndTime` → releases the player item →
-`VideoTrimmer.trim` → `onFinish` + close; errors show a sheet and restart trimming. Opened by
+`VideoTrimmer.trim` → `onFinish` + close; Cancel keeps the window as a player with a "Trim" overlay button (⌘T);
+errors show a sheet and restart trimming. **All "open recording" actions route here** (card `open`, menu panel
+`AppDelegate.open`, History `onOpenRecording`); History's "Open in Default App" is the only `NSWorkspace.open` path. Opened by
 `AppDelegate.openTrimmer(url:)` (one per URL) from the post-recording card (`trim`) and History (`onTrim`).
 
 ## Models/

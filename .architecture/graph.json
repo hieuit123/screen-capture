@@ -5,7 +5,7 @@
   {
    "id": "App/AppDelegate.swift",
    "layer": "App",
-   "loc": 442,
+   "loc": 449,
    "types": [
     "AppDelegate",
     "MainMenu"
@@ -39,7 +39,7 @@
   {
    "id": "App/TrimWindowController.swift",
    "layer": "App",
-   "loc": 104,
+   "loc": 132,
    "types": [
     "TrimWindowController"
    ],
@@ -48,7 +48,7 @@
   {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 417,
+   "loc": 427,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -288,7 +288,7 @@
   {
    "id": "Views/HistoryView.swift",
    "layer": "Views",
-   "loc": 322,
+   "loc": 330,
    "types": [
     "HistoryViewState",
     "HistoryView"
@@ -309,7 +309,7 @@
   {
    "id": "Views/PostCaptureView.swift",
    "layer": "Views",
-   "loc": 130,
+   "loc": 134,
    "types": [
     "PostCaptureView",
     "QuickCaptureToastView"
