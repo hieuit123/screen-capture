@@ -40,6 +40,11 @@ final class ThumbnailCache {
         return time.seconds
     }
 
+    /// Forgets the cached duration after a file changed in place (e.g. trimmed).
+    func invalidate(_ url: URL) {
+        durations[url] = nil
+    }
+
     private func key(_ url: URL, _ version: Date, _ size: CGFloat) -> NSString {
         "\(url.path)#\(version.timeIntervalSince1970)#\(Int(size))" as NSString
     }

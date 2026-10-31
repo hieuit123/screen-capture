@@ -5,7 +5,7 @@
   {
    "id": "App/AppDelegate.swift",
    "layer": "App",
-   "loc": 415,
+   "loc": 442,
    "types": [
     "AppDelegate",
     "MainMenu"
@@ -37,9 +37,18 @@
    ]
   },
   {
+   "id": "App/TrimWindowController.swift",
+   "layer": "App",
+   "loc": 104,
+   "types": [
+    "TrimWindowController"
+   ],
+   "extends": []
+  },
+  {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 412,
+   "loc": 417,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -258,7 +267,7 @@
   {
    "id": "Services/ThumbnailCache.swift",
    "layer": "Services",
-   "loc": 54,
+   "loc": 59,
    "types": [
     "ThumbnailCache"
    ],
@@ -267,9 +276,19 @@
    ]
   },
   {
+   "id": "Services/VideoTrimmer.swift",
+   "layer": "Services",
+   "loc": 53,
+   "types": [
+    "TrimError",
+    "VideoTrimmer"
+   ],
+   "extends": []
+  },
+  {
    "id": "Views/HistoryView.swift",
    "layer": "Views",
-   "loc": 319,
+   "loc": 322,
    "types": [
     "HistoryViewState",
     "HistoryView"
@@ -290,7 +309,7 @@
   {
    "id": "Views/PostCaptureView.swift",
    "layer": "Views",
-   "loc": 126,
+   "loc": 130,
    "types": [
     "PostCaptureView",
     "QuickCaptureToastView"
@@ -313,7 +332,7 @@
   {
    "id": "Views/SharedViews.swift",
    "layer": "Views",
-   "loc": 65,
+   "loc": 69,
    "types": [
     "ThumbnailView",
     "DurationBadge",
@@ -343,6 +362,13 @@
    "to": "App/PinWindows.swift",
    "via": [
     "PinManager"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "App/TrimWindowController.swift",
+   "via": [
+    "TrimWindowController"
    ]
   },
   {
@@ -390,6 +416,13 @@
    "to": "Services/StorageManager.swift",
    "via": [
     "StorageManager"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Services/ThumbnailCache.swift",
+   "via": [
+    "ThumbnailCache"
    ]
   },
   {
@@ -504,6 +537,14 @@
    "to": "Services/ScreenshotService.swift",
    "via": [
     "ScreenshotService"
+   ]
+  },
+  {
+   "from": "App/TrimWindowController.swift",
+   "to": "Services/VideoTrimmer.swift",
+   "via": [
+    "TrimError",
+    "VideoTrimmer"
    ]
   },
   {
@@ -795,6 +836,20 @@
    "to": "Models/Models.swift",
    "via": [
     "CaptureKind"
+   ]
+  },
+  {
+   "from": "Services/VideoTrimmer.swift",
+   "to": "Models/Models.swift",
+   "via": [
+    "VideoContainer"
+   ]
+  },
+  {
+   "from": "Services/VideoTrimmer.swift",
+   "to": "Services/StorageManager.swift",
+   "via": [
+    "StorageManager"
    ]
   },
   {
