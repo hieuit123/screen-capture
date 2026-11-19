@@ -200,7 +200,7 @@ enum EditorRenderer {
     }
 
     nonisolated static func textBoxSize(_ string: String, fontSize: CGFloat, filled: Bool) -> CGSize {
-        let measured = NSAttributedString(string: string.isEmpty ? " " : string,
+        let measured = NSAttributedString(string: string.isEmpty || string.hasSuffix("\n") ? string + " " : string,
                                           attributes: textAttributes(fontSize: fontSize, color: .black))
             .boundingRect(with: CGSize(width: 100_000, height: 100_000), options: [.usesLineFragmentOrigin]).size
         let pad = textPadding(fontSize: fontSize)
