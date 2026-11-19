@@ -590,7 +590,6 @@ private struct AnnotationLayer: View {
             let lineHeight = EditorRenderer.textBoxSize("Ag", fontSize: editing.fontSize, filled: editing.filled).height * scale
             let textWidth = size.width * scale - pad.width * 2
             let textHeight = size.height * scale - pad.height * 2
-            let lightText = editing.filled ? false : EditorRenderer.isLight(editing.color)
             // TextEditor keeps a 5pt line-fragment inset on each side; compensate so text lines up with the final mark.
             let inset: CGFloat = 5
             TextEditor(text: Binding(
@@ -613,16 +612,15 @@ private struct AnnotationLayer: View {
             }
             .onKeyPress(.escape) { doc.escape(); canvasFocused.wrappedValue = true; return .handled }
             .background {
-                // Backing is chosen for contrast with the text colour so the text stays readable on any screenshot.
-                RoundedRectangle(cornerRadius: fontSize * 0.3)
-                    .fill(editing.filled ? Color(nsColor: editing.color)
-                          : lightText ? Color.black.opacity(0.65) : Color.white.opacity(0.9))
+                // Only filled text gets a backing; plain text blends into the screenshot.
+                if editing.filled {
+                    RoundedRectangle(cornerRadius: fontSize * 0.3).fill(Color(nsColor: editing.color))
+                }
             }
             .overlay {
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
                     .strokeBorder(Color.accentColor, lineWidth: 2)
             }
-            .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .offset(x: origin.x + editing.origin.x * scale, y: origin.y + editing.origin.y * scale)
             .focused($textFocused)
             .onAppear { textFocused = true }
