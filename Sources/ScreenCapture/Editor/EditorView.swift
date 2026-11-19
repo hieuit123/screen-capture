@@ -359,6 +359,8 @@ private struct EditorCanvas: View {
                 ZStack(alignment: .topLeading) {
                     if beautify.enabled {
                         BeautifyBackgroundView(style: beautify)
+                    } else if doc.extraSpace != .none {
+                        Color.white
                     }
                     Image(decorative: doc.image, scale: 1)
                         .resizable()
@@ -369,10 +371,9 @@ private struct EditorCanvas: View {
                                 radius: layout.shadowRadius * scale / 2, y: layout.shadowRadius * scale * 0.4)
                         .position(x: imageRect.midX, y: imageRect.midY)
 
-                    AnnotationLayer(doc: doc, scale: scale, canvasFocused: canvasFocused)
-                        .frame(width: imageRect.width, height: imageRect.height)
-                        .clipShape(.rect(cornerRadius: radius))
-                        .position(x: imageRect.midX, y: imageRect.midY)
+                    // Spans the whole canvas so marks can be drawn outside the screenshot.
+                    AnnotationLayer(doc: doc, scale: scale, origin: imageRect.origin, canvasFocused: canvasFocused)
+                        .frame(width: canvasSize.width, height: canvasSize.height)
                 }
                 .frame(width: canvasSize.width, height: canvasSize.height)
                 .clipped()
@@ -445,6 +446,8 @@ private struct EditorCanvas: View {
 private struct AnnotationLayer: View {
     @Bindable var doc: EditorDocument
     let scale: CGFloat
+    /// Where the screenshot's top-left corner sits in this layer, in points.
+    let origin: CGPoint
     var canvasFocused: FocusState<Bool>.Binding
 
     @State private var isDragging = false
@@ -458,8 +461,10 @@ private struct AnnotationLayer: View {
         let imageSize = doc.imageSize
         let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
         let scale = scale
+        let origin = origin
 
         Canvas { context, _ in
+            context.translateBy(x: origin.x, y: origin.y)
             context.scaleBy(x: scale, y: scale)
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
@@ -536,7 +541,7 @@ private struct AnnotationLayer: View {
     }
 
     private func imagePoint(_ p: CGPoint) -> CGPoint {
-        CGPoint(x: p.x / scale, y: p.y / scale)
+        CGPoint(x: (p.x - origin.x) / scale, y: (p.y - origin.y) / scale)
     }
 
     @ViewBuilder
@@ -564,6 +569,7 @@ private struct AnnotationLayer: View {
                     .background(.black.opacity(0.7), in: .capsule)
                     .offset(x: rect.minX + 6, y: rect.minY + 6)
             }
+            .offset(x: origin.x, y: origin.y)
             .allowsHitTesting(false)
         }
     }
@@ -592,7 +598,7 @@ private struct AnnotationLayer: View {
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
                     .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
             }
-            .offset(x: editing.origin.x * scale, y: editing.origin.y * scale)
+            .offset(x: origin.x + editing.origin.x * scale, y: origin.y + editing.origin.y * scale)
             .focused($textFocused)
             .onSubmit { finishText() }
             .onExitCommand { doc.escape(); canvasFocused.wrappedValue = true }
@@ -689,6 +695,19 @@ private struct BeautifyPanel: View {
 
     var body: some View {
         Form {
+            Section {
+                Picker("Extra space", selection: $doc.extraSpace) {
+                    ForEach(ExtraSpace.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Canvas")
+            } footer: {
+                Text("Adds blank room around the screenshot. You can draw marks and text anywhere on it, including outside the screenshot.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 Toggle(isOn: $doc.beautify.enabled) {
                     Label("Beautify", systemImage: "sparkles")

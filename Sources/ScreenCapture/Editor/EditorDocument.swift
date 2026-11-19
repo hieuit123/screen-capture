@@ -540,22 +540,49 @@ struct BeautifySettings: Equatable, Codable {
 }
 
 /// Where the screenshot sits inside the exported canvas.
+/// Blank room added around the screenshot so marks can extend past its edges.
+enum ExtraSpace: String, CaseIterable, Identifiable {
+    case none, small, medium, large
+
+    var id: Self { self }
+
+    /// Fraction of the image's longer side added on every edge.
+    var fraction: CGFloat {
+        switch self {
+        case .none: 0
+        case .small: 0.1
+        case .medium: 0.2
+        case .large: 0.35
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .none: "None"
+        case .small: "S"
+        case .medium: "M"
+        case .large: "L"
+        }
+    }
+}
+
 struct CanvasLayout {
     let canvasSize: CGSize
     let imageRect: CGRect
     let cornerRadius: CGFloat
     let shadowRadius: CGFloat
 
-    init(imageSize: CGSize, beautify: BeautifySettings) {
+    init(imageSize: CGSize, beautify: BeautifySettings, extraSpace: ExtraSpace = .none) {
+        let longSide = max(imageSize.width, imageSize.height)
+        let extra = (longSide * extraSpace.fraction).rounded()
         guard beautify.enabled else {
-            canvasSize = imageSize
-            imageRect = CGRect(origin: .zero, size: imageSize)
+            canvasSize = CGSize(width: imageSize.width + extra * 2, height: imageSize.height + extra * 2)
+            imageRect = CGRect(x: extra, y: extra, width: imageSize.width, height: imageSize.height)
             cornerRadius = 0
             shadowRadius = 0
             return
         }
-        let longSide = max(imageSize.width, imageSize.height)
-        let pad = (longSide * beautify.padding).rounded()
+        let pad = (longSide * beautify.padding).rounded() + extra
         var width = imageSize.width + pad * 2
         var height = imageSize.height + pad * 2
         if let ratio = beautify.aspect.ratio {
@@ -605,6 +632,10 @@ final class EditorDocument {
             onBeautifyChanged?(beautify)
         }
     }
+    /// Session-only: extends the canvas past the screenshot so marks can go outside it.
+    var extraSpace: ExtraSpace = .none {
+        didSet { if extraSpace != oldValue { isDirty = true } }
+    }
     /// Lets the app remember the last Beautify style as the default for new screenshots.
     @ObservationIgnored var onBeautifyChanged: ((BeautifySettings) -> Void)?
 
@@ -645,7 +676,7 @@ final class EditorDocument {
     @ObservationIgnored var viewScale: CGFloat = 1
 
     var imageSize: CGSize { CGSize(width: image.width, height: image.height) }
-    var layout: CanvasLayout { CanvasLayout(imageSize: imageSize, beautify: beautify) }
+    var layout: CanvasLayout { CanvasLayout(imageSize: imageSize, beautify: beautify, extraSpace: extraSpace) }
     /// Scale factor so stroke/text sizes look the same on small and large screenshots.
     var unit: CGFloat { max(1, max(imageSize.width, imageSize.height) / 1600) }
     var selectedAnnotation: Annotation? { annotations.first { $0.id == selectedID } }
@@ -1021,7 +1052,8 @@ final class EditorDocument {
 
     func renderOutput() -> CGImage? {
         commitTextEditing()
-        return EditorRenderer.render(image: image, pixelated: pixelated, annotations: annotations, beautify: beautify)
+        return EditorRenderer.render(image: image, pixelated: pixelated, annotations: annotations, beautify: beautify,
+                                     extraSpace: extraSpace)
     }
 
     func save(to url: URL? = nil, rendered: CGImage? = nil) async throws {
