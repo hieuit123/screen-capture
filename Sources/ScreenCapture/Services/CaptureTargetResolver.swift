@@ -32,6 +32,9 @@ enum CaptureError: LocalizedError {
 
 @MainActor
 enum CaptureTargetResolver {
+    /// Window numbers of our own windows that may appear in captures (open editors), so an edited screenshot can itself be captured.
+    static var capturableOwnWindowNumbers: () -> Set<CGWindowID> = { [] }
+
     static func resolve(source: CaptureSource, settings: SettingsStore, area: AreaSelection?,
                         displayID displayOverride: CGDirectDisplayID? = nil) async throws -> CaptureTarget {
         let content: SCShareableContent
@@ -43,6 +46,8 @@ enum CaptureTargetResolver {
 
         let ownPID = ProcessInfo.processInfo.processIdentifier
         let ownApps = content.applications.filter { $0.processID == ownPID }
+        let capturable = capturableOwnWindowNumbers()
+        let ownEditorWindows = content.windows.filter { $0.owningApplication?.processID == ownPID && capturable.contains($0.windowID) }
 
         func display(id: CGDirectDisplayID) -> SCDisplay? {
             content.displays.first { $0.displayID == id }
@@ -59,7 +64,7 @@ enum CaptureTargetResolver {
         switch source {
         case .display:
             guard let display = display(id: displayOverride ?? settings.displayID) else { throw CaptureError.noDisplay }
-            let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
+            let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: ownEditorWindows)
             return CaptureTarget(filter: filter, sourceRect: nil, nativePixelSize: pixelSize(filter), areaSelection: nil)
 
         case .window:
@@ -90,7 +95,7 @@ enum CaptureTargetResolver {
             guard let display = content.displays.first(where: { $0.displayID == area.displayID }) else {
                 throw CaptureError.noDisplay
             }
-            let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
+            let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: ownEditorWindows)
             return CaptureTarget(filter: filter, sourceRect: area.rect,
                                  nativePixelSize: pixelSize(filter, area.rect), areaSelection: area)
         }
