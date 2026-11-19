@@ -579,25 +579,32 @@ private struct AnnotationLayer: View {
         if let editing = doc.textEditing {
             let fontSize = editing.fontSize * scale
             let pad = EditorRenderer.textPadding(fontSize: fontSize)
+            // Grow with the text so it never wraps or clips; matches the width of the finished mark.
+            let textWidth = EditorRenderer.textBoxSize(editing.text, fontSize: editing.fontSize, filled: editing.filled).width * scale
+                - pad.width * 2
+            let lightText = editing.filled ? false : EditorRenderer.isLight(editing.color)
             TextField("Type text", text: Binding(
                 get: { doc.textEditing?.text ?? "" },
                 set: { doc.textEditing?.text = $0 }
-            ), axis: .vertical)
+            ))
             .textFieldStyle(.plain)
             .font(.system(size: fontSize, weight: .bold))
             .foregroundStyle(editing.filled ? .white : Color(nsColor: editing.color))
-            .fixedSize()
-            .frame(minWidth: max(80, fontSize * 4), alignment: .leading)
+            .lineLimit(1)
+            .frame(width: max(fontSize * 4, textWidth + fontSize * 0.6), alignment: .leading)
             .padding(.horizontal, pad.width)
             .padding(.vertical, pad.height)
             .background {
+                // Backing is chosen for contrast with the text colour so the text stays readable on any screenshot.
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
-                    .fill(editing.filled ? Color(nsColor: editing.color) : Color.white.opacity(0.85))
+                    .fill(editing.filled ? Color(nsColor: editing.color)
+                          : lightText ? Color.black.opacity(0.65) : Color.white.opacity(0.9))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
             }
+            .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .offset(x: origin.x + editing.origin.x * scale, y: origin.y + editing.origin.y * scale)
             .focused($textFocused)
             .onSubmit { finishText() }

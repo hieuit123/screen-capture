@@ -218,17 +218,26 @@ enum EditorRenderer {
             ctx.addPath(CGPath(roundedRect: box, cornerWidth: fontSize * 0.3, cornerHeight: fontSize * 0.3, transform: nil))
             ctx.setFillColor(color.cgColor)
             ctx.fillPath()
-        } else {
-            // Soft halo keeps text readable on busy backgrounds.
-            ctx.setShadow(offset: .zero, blur: fontSize * 0.25,
-                          color: contrastingTextColor(for: color).withAlphaComponent(0.6).cgColor)
         }
-        let attributed = NSAttributedString(string: string, attributes: textAttributes(fontSize: fontSize, color: textColor))
+        let rect = CGRect(x: box.minX + pad.width, y: box.minY + pad.height,
+                          width: box.width - pad.width * 2 + 1, height: box.height - pad.height * 2 + 1)
         withAppKit(ctx) {
-            attributed.draw(with: CGRect(x: box.minX + pad.width, y: box.minY + pad.height,
-                                         width: box.width - pad.width * 2 + 1, height: box.height - pad.height * 2 + 1),
-                            options: [.usesLineFragmentOrigin])
+            if !filled {
+                // Outline drawn first and the fill on top, so only the outer half of the stroke shows. This keeps text
+                // readable on busy backgrounds without blurring or thinning the letters.
+                var outline = textAttributes(fontSize: fontSize, color: textColor)
+                outline[.strokeColor] = contrastingTextColor(for: color)
+                outline[.strokeWidth] = 6
+                NSAttributedString(string: string, attributes: outline).draw(with: rect, options: [.usesLineFragmentOrigin])
+            }
+            NSAttributedString(string: string, attributes: textAttributes(fontSize: fontSize, color: textColor))
+                .draw(with: rect, options: [.usesLineFragmentOrigin])
         }
+    }
+
+    nonisolated static func isLight(_ color: NSColor) -> Bool {
+        guard let rgb = color.usingColorSpace(.sRGB) else { return false }
+        return 0.299 * rgb.redComponent + 0.587 * rgb.greenComponent + 0.114 * rgb.blueComponent > 0.65
     }
 
     nonisolated static func counterRadius(fontSize: CGFloat) -> CGFloat { fontSize * 0.85 }
