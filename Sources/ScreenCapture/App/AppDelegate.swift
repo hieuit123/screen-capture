@@ -25,6 +25,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, AppUI {
     func applicationDidFinishLaunching(_ notification: Notification) {
         try? StorageManager.ensureFolders()
         model.ui = self
+        CaptureTargetResolver.capturableOwnWindowNumbers = { [weak self] in
+            Set((self?.editorControllers ?? []).compactMap { c in
+                c.window.flatMap { $0.isVisible ? CGWindowID($0.windowNumber) : nil }
+            })
+        }
         NSApp.mainMenu = MainMenu.make()
         setupStatusItem()
         setupPopover()

@@ -359,6 +359,8 @@ private struct EditorCanvas: View {
                 ZStack(alignment: .topLeading) {
                     if beautify.enabled {
                         BeautifyBackgroundView(style: beautify)
+                    } else if doc.extraSpace != .none {
+                        Color.white
                     }
                     Image(decorative: doc.image, scale: 1)
                         .resizable()
@@ -369,10 +371,9 @@ private struct EditorCanvas: View {
                                 radius: layout.shadowRadius * scale / 2, y: layout.shadowRadius * scale * 0.4)
                         .position(x: imageRect.midX, y: imageRect.midY)
 
-                    AnnotationLayer(doc: doc, scale: scale, canvasFocused: canvasFocused)
-                        .frame(width: imageRect.width, height: imageRect.height)
-                        .clipShape(.rect(cornerRadius: radius))
-                        .position(x: imageRect.midX, y: imageRect.midY)
+                    // Spans the whole canvas so marks can be drawn outside the screenshot.
+                    AnnotationLayer(doc: doc, scale: scale, origin: imageRect.origin, canvasFocused: canvasFocused)
+                        .frame(width: canvasSize.width, height: canvasSize.height)
                 }
                 .frame(width: canvasSize.width, height: canvasSize.height)
                 .clipped()
@@ -445,9 +446,12 @@ private struct EditorCanvas: View {
 private struct AnnotationLayer: View {
     @Bindable var doc: EditorDocument
     let scale: CGFloat
+    /// Where the screenshot's top-left corner sits in this layer, in points.
+    let origin: CGPoint
     var canvasFocused: FocusState<Bool>.Binding
 
     @State private var isDragging = false
+    @GestureState private var gestureDown = false
     @State private var pointer: PointerStyle = .default
     @FocusState private var textFocused: Bool
 
@@ -458,8 +462,10 @@ private struct AnnotationLayer: View {
         let imageSize = doc.imageSize
         let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
         let scale = scale
+        let origin = origin
 
         Canvas { context, _ in
+            context.translateBy(x: origin.x, y: origin.y)
             context.scaleBy(x: scale, y: scale)
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
@@ -482,6 +488,10 @@ private struct AnnotationLayer: View {
         }
         .contentShape(.rect)
         .gesture(dragGesture)
+        // A cancelled gesture never calls onEnded; without this a stale isDragging would swallow the next click.
+        .onChange(of: gestureDown) { _, down in
+            if !down, isDragging { isDragging = false; doc.end(at: doc.lastPointForCancel) }
+        }
         // NSCursor.set() gets reset by AppKit cursor rects on every mouse move, so let SwiftUI own the cursor.
         .pointerStyle(pointer)
         .onContinuousHover { phase in
@@ -518,6 +528,7 @@ private struct AnnotationLayer: View {
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
+            .updating($gestureDown) { _, state, _ in state = true }
             .onChanged { value in
                 let constrained = NSEvent.modifierFlags.contains(.shift)
                 if !isDragging {
@@ -536,7 +547,7 @@ private struct AnnotationLayer: View {
     }
 
     private func imagePoint(_ p: CGPoint) -> CGPoint {
-        CGPoint(x: p.x / scale, y: p.y / scale)
+        CGPoint(x: (p.x - origin.x) / scale, y: (p.y - origin.y) / scale)
     }
 
     @ViewBuilder
@@ -564,6 +575,7 @@ private struct AnnotationLayer: View {
                     .background(.black.opacity(0.7), in: .capsule)
                     .offset(x: rect.minX + 6, y: rect.minY + 6)
             }
+            .offset(x: origin.x, y: origin.y)
             .allowsHitTesting(false)
         }
     }
@@ -573,29 +585,44 @@ private struct AnnotationLayer: View {
         if let editing = doc.textEditing {
             let fontSize = editing.fontSize * scale
             let pad = EditorRenderer.textPadding(fontSize: fontSize)
-            TextField("Type text", text: Binding(
+            // Grow with the text so it never wraps or clips; matches the width of the finished mark.
+            let size = EditorRenderer.textBoxSize(editing.text, fontSize: editing.fontSize, filled: editing.filled)
+            let lineHeight = EditorRenderer.textBoxSize("Ag", fontSize: editing.fontSize, filled: editing.filled).height * scale
+            let textWidth = size.width * scale - pad.width * 2
+            let textHeight = size.height * scale - pad.height * 2
+            // TextEditor keeps a 5pt line-fragment inset on each side; compensate so text lines up with the final mark.
+            let inset: CGFloat = 5
+            TextEditor(text: Binding(
                 get: { doc.textEditing?.text ?? "" },
                 set: { doc.textEditing?.text = $0 }
-            ), axis: .vertical)
-            .textFieldStyle(.plain)
+            ))
+            .scrollContentBackground(.hidden)
+            .scrollDisabled(true)
             .font(.system(size: fontSize, weight: .bold))
             .foregroundStyle(editing.filled ? .white : Color(nsColor: editing.color))
-            .fixedSize()
-            .frame(minWidth: max(80, fontSize * 4), alignment: .leading)
-            .padding(.horizontal, pad.width)
-            .padding(.vertical, pad.height)
+            .frame(width: max(fontSize * 12, textWidth + fontSize * 1.5) + inset * 2,
+                   height: max(lineHeight * 3, textHeight + lineHeight * 0.5))
+            .padding(.horizontal, max(pad.width * 2 - inset, 0))
+            .padding(.vertical, pad.height * 2)
+            .onKeyPress(.return, phases: .down) { press in
+                // Shift+Return inserts a newline; plain Return commits.
+                if press.modifiers.contains(.shift) { return .ignored }
+                finishText()
+                return .handled
+            }
+            .onKeyPress(.escape) { doc.escape(); canvasFocused.wrappedValue = true; return .handled }
             .background {
-                RoundedRectangle(cornerRadius: fontSize * 0.3)
-                    .fill(editing.filled ? Color(nsColor: editing.color) : Color.white.opacity(0.85))
+                // Only filled text gets a backing; plain text blends into the screenshot.
+                if editing.filled {
+                    RoundedRectangle(cornerRadius: fontSize * 0.3).fill(Color(nsColor: editing.color))
+                }
             }
             .overlay {
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
             }
-            .offset(x: editing.origin.x * scale, y: editing.origin.y * scale)
+            .offset(x: origin.x + editing.origin.x * scale, y: origin.y + editing.origin.y * scale)
             .focused($textFocused)
-            .onSubmit { finishText() }
-            .onExitCommand { doc.escape(); canvasFocused.wrappedValue = true }
             .onAppear { textFocused = true }
             .onChange(of: textFocused) { _, focused in
                 if !focused { finishText() }
@@ -689,6 +716,19 @@ private struct BeautifyPanel: View {
 
     var body: some View {
         Form {
+            Section {
+                Picker("Extra space", selection: $doc.extraSpace) {
+                    ForEach(ExtraSpace.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Canvas")
+            } footer: {
+                Text("Adds blank room around the screenshot. You can draw marks and text anywhere on it, including outside the screenshot.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 Toggle(isOn: $doc.beautify.enabled) {
                     Label("Beautify", systemImage: "sparkles")

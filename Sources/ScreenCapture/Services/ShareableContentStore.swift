@@ -65,7 +65,8 @@ final class ShareableContentStore {
 
         windows = content.windows
             .filter { window in
-                guard let app = window.owningApplication, app.processID != ownPID else { return false }
+                guard let app = window.owningApplication else { return false }
+                if app.processID == ownPID && !CaptureTargetResolver.capturableOwnWindowNumbers().contains(window.windowID) { return false }
                 return window.isOnScreen && window.windowLayer == 0
                     && window.frame.width >= 80 && window.frame.height >= 60
             }
