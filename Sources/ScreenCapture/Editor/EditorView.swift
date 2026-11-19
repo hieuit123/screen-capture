@@ -451,6 +451,7 @@ private struct AnnotationLayer: View {
     var canvasFocused: FocusState<Bool>.Binding
 
     @State private var isDragging = false
+    @GestureState private var gestureDown = false
     @State private var pointer: PointerStyle = .default
     @FocusState private var textFocused: Bool
 
@@ -487,6 +488,10 @@ private struct AnnotationLayer: View {
         }
         .contentShape(.rect)
         .gesture(dragGesture)
+        // A cancelled gesture never calls onEnded; without this a stale isDragging would swallow the next click.
+        .onChange(of: gestureDown) { _, down in
+            if !down, isDragging { isDragging = false; doc.end(at: doc.lastPointForCancel) }
+        }
         // NSCursor.set() gets reset by AppKit cursor rects on every mouse move, so let SwiftUI own the cursor.
         .pointerStyle(pointer)
         .onContinuousHover { phase in
@@ -523,6 +528,7 @@ private struct AnnotationLayer: View {
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
+            .updating($gestureDown) { _, state, _ in state = true }
             .onChanged { value in
                 let constrained = NSEvent.modifierFlags.contains(.shift)
                 if !isDragging {
@@ -580,20 +586,32 @@ private struct AnnotationLayer: View {
             let fontSize = editing.fontSize * scale
             let pad = EditorRenderer.textPadding(fontSize: fontSize)
             // Grow with the text so it never wraps or clips; matches the width of the finished mark.
-            let textWidth = EditorRenderer.textBoxSize(editing.text, fontSize: editing.fontSize, filled: editing.filled).width * scale
-                - pad.width * 2
+            let size = EditorRenderer.textBoxSize(editing.text, fontSize: editing.fontSize, filled: editing.filled)
+            let lineHeight = EditorRenderer.textBoxSize("Ag", fontSize: editing.fontSize, filled: editing.filled).height * scale
+            let textWidth = size.width * scale - pad.width * 2
+            let textHeight = size.height * scale - pad.height * 2
             let lightText = editing.filled ? false : EditorRenderer.isLight(editing.color)
-            TextField("Type text", text: Binding(
+            // TextEditor keeps a 5pt line-fragment inset on each side; compensate so text lines up with the final mark.
+            let inset: CGFloat = 5
+            TextEditor(text: Binding(
                 get: { doc.textEditing?.text ?? "" },
                 set: { doc.textEditing?.text = $0 }
             ))
-            .textFieldStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .scrollDisabled(true)
             .font(.system(size: fontSize, weight: .bold))
             .foregroundStyle(editing.filled ? .white : Color(nsColor: editing.color))
-            .lineLimit(1)
-            .frame(width: max(fontSize * 4, textWidth + fontSize * 0.6), alignment: .leading)
-            .padding(.horizontal, pad.width)
-            .padding(.vertical, pad.height)
+            .frame(width: max(fontSize * 12, textWidth + fontSize * 1.5) + inset * 2,
+                   height: max(lineHeight * 3, textHeight + lineHeight * 0.5))
+            .padding(.horizontal, max(pad.width * 2 - inset, 0))
+            .padding(.vertical, pad.height * 2)
+            .onKeyPress(.return, phases: .down) { press in
+                // Shift+Return inserts a newline; plain Return commits.
+                if press.modifiers.contains(.shift) { return .ignored }
+                finishText()
+                return .handled
+            }
+            .onKeyPress(.escape) { doc.escape(); canvasFocused.wrappedValue = true; return .handled }
             .background {
                 // Backing is chosen for contrast with the text colour so the text stays readable on any screenshot.
                 RoundedRectangle(cornerRadius: fontSize * 0.3)
@@ -607,8 +625,6 @@ private struct AnnotationLayer: View {
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .offset(x: origin.x + editing.origin.x * scale, y: origin.y + editing.origin.y * scale)
             .focused($textFocused)
-            .onSubmit { finishText() }
-            .onExitCommand { doc.escape(); canvasFocused.wrappedValue = true }
             .onAppear { textFocused = true }
             .onChange(of: textFocused) { _, focused in
                 if !focused { finishText() }

@@ -797,6 +797,8 @@ final class EditorDocument {
 
     /// Click a mark to select it, drag it to move, drag a handle to resize, double-click text to edit it.
     /// Clicking empty space draws with the current tool.
+    var lastPointForCancel: CGPoint { lastPoint ?? .zero }
+
     func begin(at point: CGPoint) {
         let now = ProcessInfo.processInfo.systemUptime
         let isDoubleClick = lastClick.map {
