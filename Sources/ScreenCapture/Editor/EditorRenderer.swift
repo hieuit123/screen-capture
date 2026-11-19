@@ -6,9 +6,10 @@ import AppKit
 enum EditorRenderer {
     // MARK: Export
 
-    static func render(image: CGImage, pixelated: CGImage?, annotations: [Annotation], beautify: BeautifySettings) -> CGImage? {
+    static func render(image: CGImage, pixelated: CGImage?, annotations: [Annotation], beautify: BeautifySettings,
+                       extraSpace: ExtraSpace = .none) -> CGImage? {
         let imageSize = CGSize(width: image.width, height: image.height)
-        let layout = CanvasLayout(imageSize: imageSize, beautify: beautify)
+        let layout = CanvasLayout(imageSize: imageSize, beautify: beautify, extraSpace: extraSpace)
         let width = Int(layout.canvasSize.width), height = Int(layout.canvasSize.height)
         guard let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -22,6 +23,10 @@ enum EditorRenderer {
 
         let imagePath = CGPath(roundedRect: layout.imageRect, cornerWidth: layout.cornerRadius,
                                cornerHeight: layout.cornerRadius, transform: nil)
+        if !beautify.enabled && extraSpace != .none {
+            ctx.setFillColor(NSColor.white.cgColor)
+            ctx.fill(CGRect(origin: .zero, size: layout.canvasSize))
+        }
         if beautify.enabled {
             drawBackground(beautify.resolvedBackground, in: CGRect(origin: .zero, size: layout.canvasSize), context: ctx)
             if layout.shadowRadius > 0 {
@@ -40,6 +45,11 @@ enum EditorRenderer {
         ctx.addPath(imagePath)
         ctx.clip()
         drawImage(image, in: layout.imageRect, context: ctx)
+        ctx.restoreGState()
+
+        // Marks are not clipped to the screenshot, so they can extend over the background or extra space.
+        ctx.saveGState()
+        ctx.clip(to: CGRect(origin: .zero, size: layout.canvasSize))
         ctx.translateBy(x: layout.imageRect.minX, y: layout.imageRect.minY)
         draw(annotations, pixelated: pixelated, imageSize: imageSize, in: ctx)
         ctx.restoreGState()
@@ -147,7 +157,7 @@ enum EditorRenderer {
             drawText(string, at: origin, color: a.color, fontSize: a.fontSize, filled: a.filled, in: ctx)
 
         case .pixelate(let r):
-            ctx.clip(to: r)
+            ctx.clip(to: r.intersection(CGRect(origin: .zero, size: imageSize)))
             if let pixelated {
                 ctx.interpolationQuality = .none
                 drawImage(pixelated, in: CGRect(origin: .zero, size: imageSize), context: ctx)
