@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 
 enum AreaSelectionMode {
     /// Capture as soon as the mouse is released (like ⌘⇧4).
@@ -13,7 +14,33 @@ final class AreaSelector {
     private var panels: [NSPanel] = []
     private var views: [SelectionView] = []
     private var continuation: CheckedContinuation<AreaSelection?, Never>?
-    private var escMonitor: Any?
+    private var escapeHotKey: EventHotKeyRef?
+    private static var escapeHandlerInstalled = false
+    private static weak var activeSelector: AreaSelector?
+
+    private func registerEscape() {
+        if !Self.escapeHandlerInstalled {
+            Self.escapeHandlerInstalled = true
+            var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+            InstallEventHandler(GetApplicationEventTarget(), { _, event, _ in
+                var hotKeyID = EventHotKeyID()
+                let status = GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                                               nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
+                // Other hotkeys are handled by HotKeyManager.
+                guard status == noErr, hotKeyID.signature == OSType(0x5343_4553) else { return OSStatus(eventNotHandledErr) }
+                MainActor.assumeIsolated { AreaSelector.activeSelector?.finish(nil) }
+                return noErr
+            }, 1, &spec, nil, nil)
+        }
+        Self.activeSelector = self
+        RegisterEventHotKey(UInt32(kVK_Escape), 0, EventHotKeyID(signature: OSType(0x5343_4553), id: 1), // 'SCES'
+                            GetApplicationEventTarget(), 0, &escapeHotKey)
+    }
+
+    private func unregisterEscape() {
+        if let escapeHotKey { UnregisterEventHotKey(escapeHotKey) }
+        escapeHotKey = nil
+    }
 
     func selectArea(mode: AreaSelectionMode) async -> AreaSelection? {
         guard continuation == nil else { return nil }
@@ -66,19 +93,16 @@ final class AreaSelector {
             target?.makeKeyAndOrderFront(nil)
             if let view = target?.contentView { target?.makeFirstResponder(view) }
         } else {
-            // Without key focus Esc goes to the other app, so watch for it globally (needs Input Monitoring);
-            // right-click also cancels as a fallback.
-            escMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                if event.keyCode == 53 { Task { @MainActor in self?.finish(nil) } }
-            }
+            // Without key focus Esc would go to the other app, so claim it as a Carbon hotkey (no permission needed)
+            // while the overlay is up. Right-click also cancels.
+            registerEscape()
         }
         NSCursor.crosshair.set()
     }
 
     private func finish(_ selection: AreaSelection?) {
         guard continuation != nil else { return }
-        if let escMonitor { NSEvent.removeMonitor(escMonitor) }
-        escMonitor = nil
+        unregisterEscape()
         panels.forEach { $0.orderOut(nil) }
         panels.removeAll()
         views.removeAll()
