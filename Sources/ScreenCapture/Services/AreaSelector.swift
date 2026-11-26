@@ -13,6 +13,7 @@ final class AreaSelector {
     private var panels: [NSPanel] = []
     private var views: [SelectionView] = []
     private var continuation: CheckedContinuation<AreaSelection?, Never>?
+    private var escMonitor: Any?
 
     func selectArea(mode: AreaSelectionMode) async -> AreaSelection? {
         guard continuation == nil else { return nil }
@@ -29,6 +30,9 @@ final class AreaSelector {
             let panel = OverlayPanel(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel],
                                      backing: .buffered, defer: false)
             // Note: setting isFloatingPanel resets the level, so it must come before `level`.
+            // Taking key focus makes the frontmost app resign key, which closes its open popups (e.g. a Chrome dropdown).
+            // Screenshot selection therefore stays non-key; recording needs key focus for its toolbar and shortcuts.
+            panel.allowsKey = mode == .recording
             panel.isFloatingPanel = true
             panel.level = .screenSaver
             panel.becomesKeyOnlyIfNeeded = false
@@ -58,12 +62,23 @@ final class AreaSelector {
 
         let mouse = NSEvent.mouseLocation
         let target = panels.first { NSMouseInRect(mouse, $0.frame, false) } ?? panels.first
-        target?.makeKeyAndOrderFront(nil)
-        if let view = target?.contentView { target?.makeFirstResponder(view) }
+        if mode == .recording {
+            target?.makeKeyAndOrderFront(nil)
+            if let view = target?.contentView { target?.makeFirstResponder(view) }
+        } else {
+            // Without key focus Esc goes to the other app, so watch for it globally (needs Input Monitoring);
+            // right-click also cancels as a fallback.
+            escMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                if event.keyCode == 53 { Task { @MainActor in self?.finish(nil) } }
+            }
+        }
         NSCursor.crosshair.set()
     }
 
     private func finish(_ selection: AreaSelection?) {
+        guard continuation != nil else { return }
+        if let escMonitor { NSEvent.removeMonitor(escMonitor) }
+        escMonitor = nil
         panels.forEach { $0.orderOut(nil) }
         panels.removeAll()
         views.removeAll()
@@ -74,7 +89,8 @@ final class AreaSelector {
 }
 
 private final class OverlayPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
+    var allowsKey = true
+    override var canBecomeKey: Bool { allowsKey }
     override var canBecomeMain: Bool { false }
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 }
@@ -155,8 +171,12 @@ private final class SelectionView: NSView {
         needsDisplay = true
     }
 
+    override func rightMouseDown(with event: NSEvent) {
+        if mode == .screenshot { onComplete?(nil) } else { super.rightMouseDown(with: event) }
+    }
+
     override func mouseDown(with event: NSEvent) {
-        window?.makeKey()
+        if mode == .recording { window?.makeKey() }
         let point = convert(event.locationInWindow, from: nil)
 
         if mode == .recording, let selection {
