@@ -49,10 +49,15 @@ struct EditorView: View {
         .animation(.snappy, value: toast)
         .onAppear {
             canvasFocused = true
-            doc.onTextCopied = { flash($0) }
         }
         // Edit › Copy (⌘C) copies the edited image. While typing, the text field handles ⌘C itself.
         .onCopyCommand {
+            if doc.textEditing == nil, let text = doc.selectedOCRText {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                flash("Text copied")
+                return [NSItemProvider(object: text as NSString)]
+            }
             guard doc.textEditing == nil, let image = doc.renderOutput() else { return [] }
             DispatchQueue.main.async {
                 // Write the image ourselves too, so the clipboard is filled before the window can close.
@@ -464,7 +469,7 @@ private struct AnnotationLayer: View {
         let pixelated = doc.pixelated
         let imageSize = doc.imageSize
         let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
-        let ocrHighlight = doc.ocrHighlight
+        let ocrRects = doc.ocrSelectionRects
         let scale = scale
         let origin = origin
 
@@ -474,10 +479,9 @@ private struct AnnotationLayer: View {
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
             }
-            if let ocrHighlight {
-                let box = Path(roundedRect: ocrHighlight.insetBy(dx: -3 / scale, dy: -3 / scale), cornerRadius: 3 / scale)
-                context.fill(box, with: .color(.accentColor.opacity(0.25)))
-                context.stroke(box, with: .color(.accentColor), lineWidth: 1.5 / scale)
+            for rect in ocrRects {
+                let box = Path(roundedRect: rect.insetBy(dx: -2 / scale, dy: -2 / scale), cornerRadius: 2 / scale)
+                context.fill(box, with: .color(.accentColor.opacity(0.35)))
             }
             if let selected {
                 let handles = selected.handles

@@ -151,8 +151,9 @@ q=0.9 lossy, nonisolated), `copyToPasteboard`.
 ### `Services/TextRecognizer.swift` (18)
 `TextRecognizer.recognize(_ CGImage) async throws -> String` — Vision `RecognizeTextRequest` (accurate, auto language,
 language correction), lines joined by `\n`, empty when no text.
-`lines(in:) async throws -> [Line]` (`Line` = text + rect in image px, top-left origin) and
-`line(at:in:tolerance:)` (line under/nearest a point) back the editor's double-click-to-copy.
+`words(in:) async throws -> [Word]` (`Word` = text + rect in image px, top-left origin + line index; per-word boxes
+from `RecognizedText.boundingBox(for:)`), `nearestWord(to:in:tolerance:)` and `text(of:range:)` back the editor's
+double-click / drag text selection.
 
 ### `Services/VideoTrimmer.swift` (53)
 `VideoTrimmer.trim(_:to:)`: passthrough `AVAssetExportSession` (no re-encode) to a hidden temp sibling, copies
@@ -177,14 +178,16 @@ Full-range = no-op. `TrimError`.
   when the image is missing), `CanvasLayout` L543.
 - `@Observable EditorDocument` L576:
   - State: `image`, `pixelated`, `annotations`, `beautify`, `tool`, style props, `selectedID`, `draft`,
-    `cropRect`, `textEditing`, `ocrHighlight`/`onTextCopied` (double-click OCR feedback), `isDirty`, undo/redo stacks, `viewScale`, `unit`, `layout`.
+    `cropRect`, `textEditing`, `ocrSelection` (selected word range), `isDirty`, undo/redo stacks, `viewScale`, `unit`, `layout`.
   - `init(image:fileURL:beautify:)` L657, `convenience init?(url:beautify:)` L666.
   - Style setters L675–724 (also update the selected annotation).
   - Undo: `pushUndo` L728, `undo`, `redo`, `restore`.
   - `tool` defaults to `.select` for every new document (never remembered between screenshots).
-  - OCR: `prepareOCR` (lazy, cached per `image`; reset in `image.didSet`) and `copyText(at:)` — Select tool +
-    double-click on empty space copies the nearest recognized line and flashes `ocrHighlight`.
-  - Pointer: `begin(at:)` L769 (double-click text edit, handle resize, move, draw; Select + double-click empty = OCR), `update(to:constrained:)` L814,
+  - Text selection: `prepareOCR` (lazy, cached per `image`; reset in `image.didSet`), `beginTextSelection`,
+    `extendTextSelection`, `selectedOCRText`, `ocrSelectionRects` — Select tool: double-click a word selects it,
+    dragging from a word extends the selection. Nothing is copied automatically; `EditorView.onCopyCommand` copies
+    `selectedOCRText` on ⌘C (before the image copy). Esc/tool change/new click clears it.
+  - Pointer: `begin(at:)` L769 (double-click text edit, handle resize, move, draw; Select + double-click/drag on text = word selection), `update(to:constrained:)` L814,
     `end(at:)` L878 (commit draft, counters, text box), `annotation(at:)`, `handle(at:)`, `selectShapeTool`.
   - `commitTextEditing` L963, `deleteSelection`, `nudgeSelection`, `escape`, `applyCrop` L1009.
   - Output: `renderOutput` L1022, `save(to:rendered:)` L1027, `copyToPasteboard` L1038.
