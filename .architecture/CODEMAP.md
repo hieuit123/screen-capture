@@ -116,7 +116,10 @@ q=0.9 lossy, nonisolated), `copyToPasteboard`.
 ### `Services/AreaSelector.swift` (470)
 - `enum AreaSelectionMode { screenshot, recording }` L3.
 - `AreaSelector.selectArea(mode:) async -> AreaSelection?` L17: one `OverlayPanel` per screen
-  (`.screenSaver` level, non-activating).
+  (`.screenSaver` level, non-activating). In `.screenshot` mode the panels never become key (`OverlayPanel.allowsKey`),
+  so the frontmost app keeps focus and its popups (e.g. a Chrome dropdown) stay open; Esc is claimed through a
+  temporary Carbon hotkey (`registerEscape`/`unregisterEscape`) and right-click also cancels. `.recording` mode
+  still becomes key for its toolbar and Esc/Return.
 - `private SelectionView: NSView` L82: mouse draw/move/resize with handles, Esc/Return, crosshair, size pill,
   confirm toolbar for recording mode (L291).
 - `RecordingFrameOverlay` L428: red frame shown around the area while recording.

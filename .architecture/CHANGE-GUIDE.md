@@ -8,7 +8,7 @@
 | Add a new capture source | `Models/Models.swift` (`CaptureSource`), `CaptureTargetResolver.resolve`, `MenuView` (`SourcePicker`/`TargetPicker`), `ShareableContentStore` if it needs a list | |
 | Change screenshot save/clipboard/post-capture behaviour | `AppModel.saveScreenshot` / `didSave` / `finalImage` | Quick screenshot path is separate: `captureQuickScreenshot` |
 | Change recording encoding / quality / audio | `Services/ScreenRecorder.swift` (`RecordingOptions`, `start`, `makeWriter`) | Keep writer state on `queue` only |
-| Change area selection UX | `Services/AreaSelector.swift` (`SelectionView`) | Recording frame: `RecordingFrameOverlay` |
+| Change area selection UX | `Services/AreaSelector.swift` (`SelectionView`) | Recording frame: `RecordingFrameOverlay`. Screenshot overlays must stay non-key (see ARCHITECTURE §5) |
 | Full-page capture bugs | `Services/FullPageCapture.swift` (`Scripts` JS, `locateMarker`, loop, `stitch`) | Always keep `Scripts.restore` in `defer` |
 | OCR / Capture Text | `Services/TextRecognizer.swift`; flow `AppModel.captureText`/`copyRecognizedText`; editor `EditorView.copyText`; History `onCopyText` (AppDelegate → HistoryWindowController → HistoryView) | Toast via `AppUI.showTextToast` |
 | Pins (floating screenshots) | `App/PinWindows.swift`; entry points `AppModel.pinArea`, `AppDelegate.pin/pinFile`, card `pin`, editor `onPin`, History `onPin` | Pin geometry is global AppKit coordinates (bottom-left) |

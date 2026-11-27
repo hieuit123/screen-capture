@@ -154,7 +154,7 @@
   {
    "id": "Services/AreaSelector.swift",
    "layer": "Services",
-   "loc": 470,
+   "loc": 514,
    "types": [
     "AreaSelectionMode",
     "AreaSelector",

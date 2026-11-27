@@ -80,6 +80,9 @@
   `settings.beautifyStyle` via `onBeautifyChanged`.
 - **Own app is excluded** from display/area captures (`excludingApplications: ownApps`); overlays use
   `sharingType = .none`. Short sleeps (120–180 ms) let the popover/overlay disappear before capturing.
+- **Area selection must not steal key focus (screenshots):** making the overlay key makes the frontmost app resign key,
+  which closes its popups (Chrome dropdowns, menus). `.screenshot` overlays are non-key; Esc comes from a temporary
+  Carbon hotkey (no Input Monitoring needed) that is unregistered in `finish`. `.recording` overlays stay key.
 - **Editor keyboard focus is unreliable:** after inline text editing or side-panel clicks, SwiftUI's `canvasFocused`
   can read `true` while the real first responder is elsewhere, so `onKeyPress` never fires. Delete/Backspace is
   therefore also handled by an `NSEvent` local monitor in `EditorWindowController` (skipped when a text view is
