@@ -622,7 +622,9 @@ final class EditorDocument {
     }
 
     let fileURL: URL
-    private(set) var image: CGImage
+    private(set) var image: CGImage {
+        didSet { ocrLines = nil; ocrTask?.cancel(); ocrTask = nil; ocrHighlight = nil }
+    }
     private(set) var pixelated: CGImage?
     private(set) var annotations: [Annotation] = []
     var beautify = BeautifySettings() {
@@ -639,7 +641,8 @@ final class EditorDocument {
     /// Lets the app remember the last Beautify style as the default for new screenshots.
     @ObservationIgnored var onBeautifyChanged: ((BeautifySettings) -> Void)?
 
-    var tool: EditorTool = .arrow {
+    /// Every screenshot starts with nothing drawn-with: Select, where double-clicking text copies it (OCR).
+    var tool: EditorTool = .select {
         didSet {
             guard tool != oldValue else { return }
             commitTextEditing()
@@ -659,6 +662,12 @@ final class EditorDocument {
     private(set) var draft: Annotation?
     var cropRect: CGRect?
     var textEditing: TextEditing?
+    /// The line just copied by a double-click (image space); shown briefly as feedback.
+    private(set) var ocrHighlight: CGRect?
+    /// Reports the outcome of a double-click OCR copy (for a toast).
+    @ObservationIgnored var onTextCopied: ((String) -> Void)?
+    @ObservationIgnored private var ocrLines: [TextRecognizer.Line]?
+    @ObservationIgnored private var ocrTask: Task<Void, Never>?
     private(set) var isDirty = false
     @ObservationIgnored var onSaved: ((URL) -> Void)?
 
@@ -832,6 +841,10 @@ final class EditorDocument {
 
         selectedID = nil
         dragMode = tool == .select ? .none : .draw
+        if tool == .select {
+            prepareOCR()
+            if isDoubleClick { copyText(at: point) }
+        }
         switch tool {
         case .crop:
             cropRect = nil
@@ -946,6 +959,42 @@ final class EditorDocument {
                 selectedID = draft.id
             }
             draft = nil
+        }
+    }
+
+    // MARK: OCR (double-click empty space in Select)
+
+    /// Starts recognizing the screenshot (once) so the double-click answer is instant.
+    private func prepareOCR() {
+        guard ocrLines == nil, ocrTask == nil else { return }
+        let image = image
+        ocrTask = Task { [weak self] in
+            let lines = (try? await TextRecognizer.lines(in: image)) ?? []
+            guard !Task.isCancelled, let self else { return }
+            ocrLines = lines
+            ocrTask = nil
+        }
+    }
+
+    private func copyText(at point: CGPoint) {
+        let image = image
+        Task { [weak self] in
+            guard let self else { return }
+            if ocrLines == nil {
+                prepareOCR()
+                await ocrTask?.value
+            }
+            guard self.image === image, let lines = ocrLines else { return }
+            guard let line = TextRecognizer.line(at: point, in: lines, tolerance: 6 * unit) else {
+                onTextCopied?("No text here")
+                return
+            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(line.text, forType: .string)
+            ocrHighlight = line.rect
+            onTextCopied?("Text copied")
+            try? await Task.sleep(for: .seconds(0.9))
+            if ocrHighlight == line.rect { ocrHighlight = nil }
         }
     }
 

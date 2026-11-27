@@ -47,7 +47,10 @@ struct EditorView: View {
             }
         }
         .animation(.snappy, value: toast)
-        .onAppear { canvasFocused = true }
+        .onAppear {
+            canvasFocused = true
+            doc.onTextCopied = { flash($0) }
+        }
         // Edit › Copy (⌘C) copies the edited image. While typing, the text field handles ⌘C itself.
         .onCopyCommand {
             guard doc.textEditing == nil, let image = doc.renderOutput() else { return [] }
@@ -461,6 +464,7 @@ private struct AnnotationLayer: View {
         let pixelated = doc.pixelated
         let imageSize = doc.imageSize
         let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
+        let ocrHighlight = doc.ocrHighlight
         let scale = scale
         let origin = origin
 
@@ -469,6 +473,11 @@ private struct AnnotationLayer: View {
             context.scaleBy(x: scale, y: scale)
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
+            }
+            if let ocrHighlight {
+                let box = Path(roundedRect: ocrHighlight.insetBy(dx: -3 / scale, dy: -3 / scale), cornerRadius: 3 / scale)
+                context.fill(box, with: .color(.accentColor.opacity(0.25)))
+                context.stroke(box, with: .color(.accentColor), lineWidth: 1.5 / scale)
             }
             if let selected {
                 let handles = selected.handles
