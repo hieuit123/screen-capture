@@ -47,9 +47,17 @@ struct EditorView: View {
             }
         }
         .animation(.snappy, value: toast)
-        .onAppear { canvasFocused = true }
+        .onAppear {
+            canvasFocused = true
+        }
         // Edit › Copy (⌘C) copies the edited image. While typing, the text field handles ⌘C itself.
         .onCopyCommand {
+            if doc.textEditing == nil, let text = doc.selectedOCRText {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                flash("Text copied")
+                return [NSItemProvider(object: text as NSString)]
+            }
             guard doc.textEditing == nil, let image = doc.renderOutput() else { return [] }
             DispatchQueue.main.async {
                 // Write the image ourselves too, so the clipboard is filled before the window can close.
@@ -461,6 +469,7 @@ private struct AnnotationLayer: View {
         let pixelated = doc.pixelated
         let imageSize = doc.imageSize
         let selected = doc.textEditing == nil && doc.tool != .crop ? doc.selectedAnnotation : nil
+        let ocrRects = doc.ocrSelectionRects
         let scale = scale
         let origin = origin
 
@@ -469,6 +478,10 @@ private struct AnnotationLayer: View {
             context.scaleBy(x: scale, y: scale)
             context.withCGContext { cg in
                 EditorRenderer.draw(annotations, pixelated: pixelated, imageSize: imageSize, in: cg)
+            }
+            for rect in ocrRects {
+                let box = Path(roundedRect: rect.insetBy(dx: -2 / scale, dy: -2 / scale), cornerRadius: 2 / scale)
+                context.fill(box, with: .color(.accentColor.opacity(0.35)))
             }
             if let selected {
                 let handles = selected.handles

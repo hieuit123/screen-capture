@@ -10,7 +10,7 @@
 | Change recording encoding / quality / audio | `Services/ScreenRecorder.swift` (`RecordingOptions`, `start`, `makeWriter`) | Keep writer state on `queue` only |
 | Change area selection UX | `Services/AreaSelector.swift` (`SelectionView`) | Recording frame: `RecordingFrameOverlay`. Screenshot overlays must stay non-key (see ARCHITECTURE §5) |
 | Full-page capture bugs | `Services/FullPageCapture.swift` (`Scripts` JS, `locateMarker`, loop, `stitch`) | Always keep `Scripts.restore` in `defer` |
-| OCR / Capture Text | `Services/TextRecognizer.swift`; flow `AppModel.captureText`/`copyRecognizedText`; editor `EditorView.copyText`; History `onCopyText` (AppDelegate → HistoryWindowController → HistoryView) | Toast via `AppUI.showTextToast` |
+| OCR / Capture Text | `Services/TextRecognizer.swift`; flow `AppModel.captureText`/`copyRecognizedText`; editor `EditorView.copyText`; editor word selection `EditorDocument.begin` → `beginTextSelection`/`extendTextSelection` + `TextRecognizer.words`, ⌘C in `EditorView.onCopyCommand`; History `onCopyText` (AppDelegate → HistoryWindowController → HistoryView) | Toast via `AppUI.showTextToast` |
 | Pins (floating screenshots) | `App/PinWindows.swift`; entry points `AppModel.pinArea`, `AppDelegate.pin/pinFile`, card `pin`, editor `onPin`, History `onPin` | Pin geometry is global AppKit coordinates (bottom-left) |
 | Video trimming | `Services/VideoTrimmer.swift` (export/replace), `App/TrimWindowController.swift` (AVKit trim UI), `AppDelegate.openTrimmer`, card `trim`, History `onTrim` | Replaced files keep their URL: call `ThumbnailCache.invalidate` and pass `version: item.modified` to `DurationBadge` |
 | File naming / folders | `Services/StorageManager.swift` | History file filters: `HistoryStore.scan` |

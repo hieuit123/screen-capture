@@ -618,11 +618,14 @@ final class EditorDocument {
 
     private enum DragMode {
         case none, draw, move
+        case textSelect(anchor: Int)
         case resize(EditHandle, Annotation)
     }
 
     let fileURL: URL
-    private(set) var image: CGImage
+    private(set) var image: CGImage {
+        didSet { ocrWords = nil; ocrTask?.cancel(); ocrTask = nil; ocrSelection = nil }
+    }
     private(set) var pixelated: CGImage?
     private(set) var annotations: [Annotation] = []
     var beautify = BeautifySettings() {
@@ -639,11 +642,12 @@ final class EditorDocument {
     /// Lets the app remember the last Beautify style as the default for new screenshots.
     @ObservationIgnored var onBeautifyChanged: ((BeautifySettings) -> Void)?
 
-    var tool: EditorTool = .arrow {
+    /// Every screenshot starts with nothing drawn-with: Select, where double-clicking text copies it (OCR).
+    var tool: EditorTool = .select {
         didSet {
             guard tool != oldValue else { return }
             commitTextEditing()
-            if tool != .select { selectedID = nil }
+            if tool != .select { selectedID = nil; ocrSelection = nil }
             if tool != .crop { cropRect = nil }
             if EditorTool.shapes.contains(tool) { lastShape = tool }
         }
@@ -659,6 +663,10 @@ final class EditorDocument {
     private(set) var draft: Annotation?
     var cropRect: CGRect?
     var textEditing: TextEditing?
+    /// Words picked in Select mode by double-click or drag over the screenshot's text (indices into `ocrWords`).
+    private(set) var ocrSelection: ClosedRange<Int>?
+    @ObservationIgnored private var ocrWords: [TextRecognizer.Word]?
+    @ObservationIgnored private var ocrTask: Task<Void, Never>?
     private(set) var isDirty = false
     @ObservationIgnored var onSaved: ((URL) -> Void)?
 
@@ -832,6 +840,11 @@ final class EditorDocument {
 
         selectedID = nil
         dragMode = tool == .select ? .none : .draw
+        if tool == .select {
+            ocrSelection = nil
+            prepareOCR()
+            beginTextSelection(at: point, isDoubleClick: isDoubleClick)
+        }
         switch tool {
         case .crop:
             cropRect = nil
@@ -850,6 +863,9 @@ final class EditorDocument {
 
         switch dragMode {
         case .none:
+            return
+        case .textSelect(let anchor):
+            extendTextSelection(from: anchor, to: point)
             return
         case .move:
             guard point != last, let index = annotations.firstIndex(where: { $0.id == selectedID }) else { return }
@@ -949,6 +965,69 @@ final class EditorDocument {
         }
     }
 
+    // MARK: Text selection (OCR) in Select mode
+
+    /// The selected words as text, or nil when nothing is selected. Copying is left to the user (⌘C).
+    var selectedOCRText: String? {
+        guard let words = ocrWords, let range = ocrSelection, range.upperBound < words.count else { return nil }
+        return TextRecognizer.text(of: words, range: range)
+    }
+
+    /// Rects (image space) to highlight: one per run of selected words on the same line.
+    var ocrSelectionRects: [CGRect] {
+        guard let words = ocrWords, let range = ocrSelection, range.upperBound < words.count else { return [] }
+        var rects: [CGRect] = []
+        var line = -1
+        for index in range {
+            let word = words[index]
+            if word.line == line, let last = rects.popLast() {
+                rects.append(last.union(word.rect))
+            } else {
+                rects.append(word.rect)
+            }
+            line = word.line
+        }
+        return rects
+    }
+
+    /// Starts recognizing the screenshot (once) so selecting is instant.
+    private func prepareOCR() {
+        guard ocrWords == nil, ocrTask == nil else { return }
+        let image = image
+        ocrTask = Task { [weak self] in
+            let words = (try? await TextRecognizer.words(in: image)) ?? []
+            guard !Task.isCancelled, let self else { return }
+            ocrWords = words
+            ocrTask = nil
+        }
+    }
+
+    /// Double-click picks the word under the pointer; dragging from a word extends the selection.
+    private func beginTextSelection(at point: CGPoint, isDoubleClick: Bool) {
+        guard isDoubleClick else {
+            if let words = ocrWords, let anchor = TextRecognizer.nearestWord(to: point, in: words, tolerance: 4 * unit) {
+                dragMode = .textSelect(anchor: anchor)
+            }
+            return
+        }
+        let image = image
+        Task { [weak self] in
+            guard let self else { return }
+            await ocrTask?.value
+            guard self.image === image, let words = ocrWords,
+                  let hit = TextRecognizer.nearestWord(to: point, in: words, tolerance: 4 * unit) else { return }
+            ocrSelection = hit...hit
+        }
+        if let words = ocrWords, let anchor = TextRecognizer.nearestWord(to: point, in: words, tolerance: 4 * unit) {
+            dragMode = .textSelect(anchor: anchor)
+        }
+    }
+
+    private func extendTextSelection(from anchor: Int, to point: CGPoint) {
+        guard let words = ocrWords, let current = TextRecognizer.nearestWord(to: point, in: words) else { return }
+        ocrSelection = min(anchor, current)...max(anchor, current)
+    }
+
     private func recordMoveUndo() {
         guard !moveRecorded else { return }
         pushUndo()
@@ -1034,6 +1113,7 @@ final class EditorDocument {
     }
 
     func escape() {
+        if ocrSelection != nil { ocrSelection = nil; return }
         if textEditing != nil { textEditing = nil; return }
         if cropRect != nil { cropRect = nil; return }
         selectedID = nil

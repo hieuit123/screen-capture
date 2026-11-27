@@ -87,6 +87,10 @@
   can read `true` while the real first responder is elsewhere, so `onKeyPress` never fires. Delete/Backspace is
   therefore also handled by an `NSEvent` local monitor in `EditorWindowController` (skipped when a text view is
   first responder or text is being edited). Keep new global editor keys on that path if they must always work.
+- **Editor starts in Select:** `EditorDocument.tool` defaults to `.select` for every screenshot (no tool carries
+  over). In Select, the image is OCR'd once into words (cached, invalidated when `image` changes: crop, undo; the
+  first click warms the cache). Double-click a word to select it, drag from a word to extend; the selection is only
+  highlighted, ⌘C copies it (text, not the image).
 - **Activation policy:** `.accessory` by default; `.regular` (Dock icon) while History/Settings/Editor windows are
   visible (`updateActivationPolicySoon`). Use `NSApp.forceActivate()` so windows get key focus after a global hot key.
 - **Hot keys:** Carbon `RegisterEventHotKey` (no Accessibility permission). `suspend()/resume()` while recording a
