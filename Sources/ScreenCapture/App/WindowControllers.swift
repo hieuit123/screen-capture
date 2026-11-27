@@ -58,6 +58,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     var onFinish: ((EditorFinishAction, CGImage, CGDirectDisplayID?) -> Void)?
     /// Pin the edited image (with the document's file URL).
     var onPin: ((CGImage, URL) -> Void)?
+    private var deleteKeyMonitor: Any?
 
     init(document: EditorDocument, settings: SettingsStore) {
         self.editorDocument = document
@@ -92,6 +93,18 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         super.init(window: window)
         window.delegate = self
         weakSelf = self
+
+        // Backspace/Delete removes the selected mark even when SwiftUI focus is not on the canvas
+        // (e.g. after typing text or clicking the side panel). Text fields keep their normal Backspace.
+        deleteKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, let window = self.window, event.window === window, window.isKeyWindow,
+                  event.keyCode == 51 || event.keyCode == 117,
+                  event.modifierFlags.intersection([.command, .option, .control]).isEmpty,
+                  !(window.firstResponder is NSText),
+                  self.editorDocument.textEditing == nil, self.editorDocument.selectedID != nil else { return event }
+            self.editorDocument.deleteSelection()
+            return nil
+        }
     }
 
     @available(*, unavailable)
@@ -146,6 +159,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        if let deleteKeyMonitor { NSEvent.removeMonitor(deleteKeyMonitor) }
+        deleteKeyMonitor = nil
         onClose?(self)
     }
 }

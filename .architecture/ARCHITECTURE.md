@@ -80,6 +80,10 @@
   `settings.beautifyStyle` via `onBeautifyChanged`.
 - **Own app is excluded** from display/area captures (`excludingApplications: ownApps`); overlays use
   `sharingType = .none`. Short sleeps (120–180 ms) let the popover/overlay disappear before capturing.
+- **Editor keyboard focus is unreliable:** after inline text editing or side-panel clicks, SwiftUI's `canvasFocused`
+  can read `true` while the real first responder is elsewhere, so `onKeyPress` never fires. Delete/Backspace is
+  therefore also handled by an `NSEvent` local monitor in `EditorWindowController` (skipped when a text view is
+  first responder or text is being edited). Keep new global editor keys on that path if they must always work.
 - **Activation policy:** `.accessory` by default; `.regular` (Dock icon) while History/Settings/Editor windows are
   visible (`updateActivationPolicySoon`). Use `NSApp.forceActivate()` so windows get key focus after a global hot key.
 - **Hot keys:** Carbon `RegisterEventHotKey` (no Accessibility permission). `suspend()/resume()` while recording a

@@ -47,7 +47,8 @@ Creates `NSApplication`, sets `AppDelegate`, `.accessory` activation policy, run
 
 ### `App/WindowControllers.swift` (402)
 - `HistoryWindowController` L5: hosts `HistoryView`; `show(kind:select:)` sets `HistoryViewState`.
-- `EditorWindowController` L50: hosts `EditorView`; `present`, `finish` (close + `onFinish`),
+- `EditorWindowController` L50: hosts `EditorView`; `present`, `finish` (close + `onFinish`), a local `keyDown`
+  monitor (`deleteKeyMonitor`) that deletes the selected mark on Backspace/Delete regardless of SwiftUI focus,
   `windowShouldClose` L107 (Save / Don't Save / Cancel sheet when `isDirty`).
 - `SettingsWindowController` L146: hosts `SettingsView`.
 - `FloatingPanelStack` L181: stacks preview `NSPanel`s per screen (newest at bottom, max 3, oldest dropped),
@@ -198,7 +199,8 @@ Full-range = no-op. `TrimError`.
   when `settings.closeEditorAfterCopyOrSave`).
 - `ToolPicker` L143, `StyleBar` L180 (palette, stroke, border, fill, text size).
 - `EditorCanvas` L306: fit/zoom scale, ScrollView, pinch `MagnifyGesture`, key handling `handleKey` L379
-  (delete, esc, return=apply crop, arrows=nudge, tool keys, `4` cycles shapes).
+  (delete, esc, return=apply crop, arrows=nudge, tool keys, `4` cycles shapes). Delete also works through the
+  window-level monitor in `EditorWindowController`; `refocusCanvas()` (in `AnnotationLayer`) re-takes focus after text/gestures.
 - `AnnotationLayer` L415: SwiftUI `Canvas` → `EditorRenderer.draw`, selection handles, `DragGesture` →
   `doc.begin/update/end`, pointer styles, `cropOverlay`, inline `textEditor`.
 - `EditorZoom` L584 (steps, clamp, maxZoom), `ZoomBar` L598.
