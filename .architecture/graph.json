@@ -5,7 +5,7 @@
   {
    "id": "App/AppDelegate.swift",
    "layer": "App",
-   "loc": 449,
+   "loc": 454,
    "types": [
     "AppDelegate",
     "MainMenu"
@@ -48,7 +48,7 @@
   {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 427,
+   "loc": 442,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -64,7 +64,7 @@
   {
    "id": "Editor/EditorDocument.swift",
    "layer": "Editor",
-   "loc": 1093,
+   "loc": 1127,
    "types": [
     "EditorTool",
     "StrokeSize",
@@ -81,6 +81,7 @@
     "CustomGradient",
     "ResolvedBackground",
     "BeautifySettings",
+    "ExtraSpace",
     "CanvasLayout",
     "EditorDocument"
    ],
@@ -92,7 +93,7 @@
   {
    "id": "Editor/EditorRenderer.swift",
    "layer": "Editor",
-   "loc": 310,
+   "loc": 329,
    "types": [
     "EditorRenderer"
    ],
@@ -101,7 +102,7 @@
   {
    "id": "Editor/EditorView.swift",
    "layer": "Editor",
-   "loc": 893,
+   "loc": 940,
    "types": [
     "EditorFinishAction",
     "EditorView",
@@ -175,7 +176,7 @@
   {
    "id": "Services/CaptureTargetResolver.swift",
    "layer": "Services",
-   "loc": 105,
+   "loc": 110,
    "types": [
     "CaptureTarget",
     "CaptureError",
@@ -225,7 +226,7 @@
   {
    "id": "Services/ScreenshotService.swift",
    "layer": "Services",
-   "loc": 38,
+   "loc": 50,
    "types": [
     "ScreenshotService"
    ],
@@ -234,7 +235,7 @@
   {
    "id": "Services/ShareableContentStore.swift",
    "layer": "Services",
-   "loc": 108,
+   "loc": 109,
    "types": [
     "DisplayOption",
     "WindowOption",
@@ -288,7 +289,7 @@
   {
    "id": "Views/HistoryView.swift",
    "layer": "Views",
-   "loc": 330,
+   "loc": 333,
    "types": [
     "HistoryViewState",
     "HistoryView"
@@ -298,7 +299,7 @@
   {
    "id": "Views/MenuView.swift",
    "layer": "Views",
-   "loc": 515,
+   "loc": 527,
    "types": [
     "MenuView"
    ],
@@ -332,7 +333,7 @@
   {
    "id": "Views/SharedViews.swift",
    "layer": "Views",
-   "loc": 69,
+   "loc": 78,
    "types": [
     "ThumbnailView",
     "DurationBadge",
@@ -402,6 +403,13 @@
    "to": "Models/Shortcut.swift",
    "via": [
     "ShortcutAction"
+   ]
+  },
+  {
+   "from": "App/AppDelegate.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureTargetResolver"
    ]
   },
   {
@@ -642,6 +650,7 @@
     "Annotation",
     "BeautifySettings",
     "CanvasLayout",
+    "ExtraSpace",
     "GradientDirection",
     "ResolvedBackground"
    ]
@@ -656,6 +665,7 @@
     "BorderStyle",
     "EditorDocument",
     "EditorTool",
+    "ExtraSpace",
     "GradientDirection",
     "GradientPreset",
     "RGBColor",
@@ -832,6 +842,13 @@
    ]
   },
   {
+   "from": "Services/ShareableContentStore.swift",
+   "to": "Services/CaptureTargetResolver.swift",
+   "via": [
+    "CaptureTargetResolver"
+   ]
+  },
+  {
    "from": "Services/StorageManager.swift",
    "to": "Models/Models.swift",
    "via": [
@@ -865,6 +882,13 @@
    "to": "Services/HistoryStore.swift",
    "via": [
     "HistoryStore"
+   ]
+  },
+  {
+   "from": "Views/HistoryView.swift",
+   "to": "Services/ScreenshotService.swift",
+   "via": [
+    "ScreenshotService"
    ]
   },
   {
