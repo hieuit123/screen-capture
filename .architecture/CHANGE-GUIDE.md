@@ -20,7 +20,7 @@
 | New editor tool | `EditorDocument.swift`: `EditorTool` (+keys/flags), `AnnotationShape`, `Annotation` (bounds/handles/resize/hitTest/offset), `begin/update/end`, `newAnnotation`; draw in `EditorRenderer.draw(_ a:)`; button in `EditorView.ToolPicker` | Coordinates are image pixels; `pushUndo()` before mutation |
 | Editor style controls (color, stroke…) | `EditorDocument` setters (L563+) + `EditorView.StyleBar` | |
 | Beautify (backgrounds, padding, aspect) | `GradientPreset`/`BackgroundKind`/`BeautifySettings`/`CanvasLayout` in `EditorDocument.swift`; drawing in `EditorRenderer.drawBackground`/`render`; images in `Services/BackgroundLibrary.swift`; controls `BeautifyStyleControls` (EditorView) reused by `BeautifySettingsView` | Keep `BeautifyBackgroundView` in sync with `drawBackground`; new `BeautifySettings` fields need `decodeIfPresent` |
-| Editor keyboard shortcuts | `EditorView.EditorCanvas.handleKey`, toolbar `keyboardShortcut`s, `EditorTool.key/numberKey` | |
+| Editor keyboard shortcuts | `EditorView.EditorCanvas.handleKey`, toolbar `keyboardShortcut`s, `EditorTool.key/numberKey` | Keys that must work regardless of focus (Delete): `EditorWindowController.deleteKeyMonitor` |
 | Editor zoom | `EditorZoom`, `ZoomBar`, `EditorCanvas` (pinch) | |
 | Editor close/save prompts | `EditorWindowController.windowShouldClose`, `EditorView.finishOrFlash` | |
 | Error messages / permission prompts | Error enums (`CaptureError`, `RecorderError`, `FullPageError`), `AppDelegate.showError` | Deep-link pane chosen from message text |

@@ -48,7 +48,7 @@
   {
    "id": "App/WindowControllers.swift",
    "layer": "App",
-   "loc": 427,
+   "loc": 442,
    "types": [
     "HistoryWindowController",
     "EditorWindowController",
@@ -102,7 +102,7 @@
   {
    "id": "Editor/EditorView.swift",
    "layer": "Editor",
-   "loc": 933,
+   "loc": 940,
    "types": [
     "EditorFinishAction",
     "EditorView",

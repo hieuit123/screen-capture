@@ -83,6 +83,10 @@
 - **Area selection must not steal key focus (screenshots):** making the overlay key makes the frontmost app resign key,
   which closes its popups (Chrome dropdowns, menus). `.screenshot` overlays are non-key; Esc comes from a temporary
   Carbon hotkey (no Input Monitoring needed) that is unregistered in `finish`. `.recording` overlays stay key.
+- **Editor keyboard focus is unreliable:** after inline text editing or side-panel clicks, SwiftUI's `canvasFocused`
+  can read `true` while the real first responder is elsewhere, so `onKeyPress` never fires. Delete/Backspace is
+  therefore also handled by an `NSEvent` local monitor in `EditorWindowController` (skipped when a text view is
+  first responder or text is being edited). Keep new global editor keys on that path if they must always work.
 - **Activation policy:** `.accessory` by default; `.regular` (Dock icon) while History/Settings/Editor windows are
   visible (`updateActivationPolicySoon`). Use `NSApp.forceActivate()` so windows get key focus after a global hot key.
 - **Hot keys:** Carbon `RegisterEventHotKey` (no Accessibility permission). `suspend()/resume()` while recording a

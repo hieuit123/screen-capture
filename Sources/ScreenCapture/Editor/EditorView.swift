@@ -542,7 +542,7 @@ private struct AnnotationLayer: View {
                 isDragging = false
                 doc.end(at: imagePoint(value.location))
                 pointer = pointerStyle(at: imagePoint(value.location))
-                if doc.textEditing == nil { canvasFocused.wrappedValue = true }
+                if doc.textEditing == nil { refocusCanvas() }
             }
     }
 
@@ -610,7 +610,7 @@ private struct AnnotationLayer: View {
                 finishText()
                 return .handled
             }
-            .onKeyPress(.escape) { doc.escape(); canvasFocused.wrappedValue = true; return .handled }
+            .onKeyPress(.escape) { doc.escape(); refocusCanvas(); return .handled }
             .background {
                 // Only filled text gets a backing; plain text blends into the screenshot.
                 if editing.filled {
@@ -632,7 +632,14 @@ private struct AnnotationLayer: View {
 
     private func finishText() {
         doc.commitTextEditing()
-        canvasFocused.wrappedValue = true
+        refocusCanvas()
+    }
+
+    /// The canvas focus flag can already read `true` while the real first responder is still the (now removed) text view
+    /// or another control, which leaves Delete/Backspace and the tool keys dead. Toggling forces focus back.
+    private func refocusCanvas() {
+        canvasFocused.wrappedValue = false
+        DispatchQueue.main.async { canvasFocused.wrappedValue = true }
     }
 }
 
