@@ -80,6 +80,9 @@
   `settings.beautifyStyle` via `onBeautifyChanged`.
 - **Own app is excluded** from display/area captures (`excludingApplications: ownApps`); overlays use
   `sharingType = .none`. Short sleeps (120–180 ms) let the popover/overlay disappear before capturing.
+- **Area selection must not steal key focus (screenshots):** making the overlay key makes the frontmost app resign key,
+  which closes its popups (Chrome dropdowns, menus). `.screenshot` overlays are non-key; Esc comes from a temporary
+  Carbon hotkey (no Input Monitoring needed) that is unregistered in `finish`. `.recording` overlays stay key.
 - **Activation policy:** `.accessory` by default; `.regular` (Dock icon) while History/Settings/Editor windows are
   visible (`updateActivationPolicySoon`). Use `NSApp.forceActivate()` so windows get key focus after a global hot key.
 - **Hot keys:** Carbon `RegisterEventHotKey` (no Accessibility permission). `suspend()/resume()` while recording a
